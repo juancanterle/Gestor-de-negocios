@@ -1,4 +1,4 @@
-import { createServerClient } from '@supabase/ssr'
+import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 
@@ -7,7 +7,7 @@ export async function POST(request: Request) {
   const cookieStore = await cookies()
 
   // Buffer para capturar las cookies que Supabase quiere setear
-  const cookiesToSetBuffer: Array<{ name: string; value: string; options: Record<string, unknown> }> = []
+  const cookiesToSetBuffer: Array<{ name: string; value: string; options: CookieOptions }> = []
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -15,7 +15,7 @@ export async function POST(request: Request) {
     {
       cookies: {
         getAll() { return cookieStore.getAll() },
-        setAll(cs: { name: string; value: string; options: Record<string, unknown> }[]) { cookiesToSetBuffer.push(...cs) },
+        setAll(cs: { name: string; value: string; options: CookieOptions }[]) { cookiesToSetBuffer.push(...cs) },
       },
     }
   )
