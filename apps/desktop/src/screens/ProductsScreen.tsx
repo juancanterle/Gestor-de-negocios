@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Plus, Search, Edit2, Trash2, X } from 'lucide-react'
 import type { Product, Category, Supplier } from '../types/api'
 
@@ -24,6 +24,8 @@ export default function ProductsScreen() {
   const [modal, setModal]           = useState(false)
   const [editing, setEditing]       = useState<Partial<Product> & { user_id: string }>(EMPTY)
   const [isEdit, setIsEdit]         = useState(false)
+  const barcodeRef = useRef<HTMLInputElement>(null)
+  const nameRef    = useRef<HTMLInputElement>(null)
 
   const load = async () => {
     const [prods, cats, sups] = await Promise.all([
@@ -38,8 +40,18 @@ export default function ProductsScreen() {
 
   useEffect(() => { load() }, [search, filterCat, filterSup])
 
-  const openCreate = () => { setEditing({ ...EMPTY }); setIsEdit(false); setModal(true) }
-  const openEdit   = (p: Product) => { setEditing({ ...p, user_id: 'admin' }); setIsEdit(true); setModal(true) }
+  const openCreate = () => {
+    setEditing({ ...EMPTY })
+    setIsEdit(false)
+    setModal(true)
+    setTimeout(() => barcodeRef.current?.focus(), 50)
+  }
+  const openEdit = (p: Product) => {
+    setEditing({ ...p, user_id: 'admin' })
+    setIsEdit(true)
+    setModal(true)
+    setTimeout(() => nameRef.current?.focus(), 50)
+  }
 
   const handleDelete = async (id: string) => {
     if (!confirm('¿Eliminar este producto?')) return
@@ -145,11 +157,18 @@ export default function ProductsScreen() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
               <div style={{ gridColumn: '1 / -1' }}>
                 <label style={lbl}>Nombre *</label>
-                <input value={editing.name || ''} onChange={e => setEditing(p => ({ ...p, name: e.target.value }))} style={inp} placeholder="Nombre del producto" />
+                <input ref={nameRef} value={editing.name || ''} onChange={e => setEditing(p => ({ ...p, name: e.target.value }))} style={inp} placeholder="Nombre del producto" />
               </div>
               <div>
                 <label style={lbl}>Código de barras</label>
-                <input value={editing.barcode || ''} onChange={e => setEditing(p => ({ ...p, barcode: e.target.value }))} style={inp} placeholder="EAN-13, EAN-8..." />
+                <input
+                  ref={barcodeRef}
+                  value={editing.barcode || ''}
+                  onChange={e => setEditing(p => ({ ...p, barcode: e.target.value }))}
+                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); nameRef.current?.focus() } }}
+                  style={inp}
+                  placeholder="Escaneá o escribí el código..."
+                />
               </div>
               <div>
                 <label style={lbl}>Unidad</label>
