@@ -37,9 +37,12 @@ export default function App() {
     if (saved) setUser(JSON.parse(saved))
   }, [])
 
-  const handleLogin = (u: User) => {
+  const handleLogin = async (u: User) => {
     setUser(u)
     sessionStorage.setItem('user', JSON.stringify(u))
+    // Si no hay caja abierta, ir directo a la pantalla de caja
+    const register = await window.api.cashRegister.getCurrent()
+    if (!register) setScreen('cash')
   }
 
   const handleLogout = () => {

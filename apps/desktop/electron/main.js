@@ -1,9 +1,6 @@
-import { app, BrowserWindow } from 'electron'
-import { fileURLToPath } from 'url'
-import path from 'path'
-import { initDatabase, closeDatabase } from './database.js'
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const { app, BrowserWindow } = require('electron')
+const path = require('path')
+const { initDatabase, closeDatabase } = require('./database.js')
 
 let mainWindow
 

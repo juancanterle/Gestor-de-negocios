@@ -1,11 +1,11 @@
-import Database from 'better-sqlite3'
-import { app, ipcMain } from 'electron'
-import path from 'path'
-import { randomUUID } from 'crypto'
+const Database = require('better-sqlite3')
+const { app, ipcMain } = require('electron')
+const path = require('path')
+const { randomUUID } = require('crypto')
 
 let db
 
-export function initDatabase() {
+function initDatabase() {
   const dbPath = app.isPackaged
     ? path.join(app.getPath('userData'), 'kiosco.db')
     : path.join(app.getPath('userData'), 'kiosco-dev.db')
@@ -20,7 +20,7 @@ export function initDatabase() {
   console.log('Base de datos iniciada en:', dbPath)
 }
 
-export function closeDatabase() {
+function closeDatabase() {
   if (db) db.close()
 }
 
@@ -581,8 +581,6 @@ function registerHandlers() {
     const register = db.prepare('SELECT id FROM cash_registers WHERE id=?').get(data.id)
     if (!register) return { error: 'Caja no encontrada' }
 
-    // Monto teórico = apertura + ventas en efectivo + ingresos manuales - egresos manuales
-    // No incluye SALE_TRANSFER (es digital) ni OPENING/CLOSING (son registros de apertura/cierre)
     const theoretical = db.prepare(`
       SELECT
         COALESCE(SUM(CASE WHEN type='OPENING'    THEN  amount ELSE 0 END), 0) +
@@ -645,7 +643,6 @@ function registerHandlers() {
           VALUES (?, ?, ?, ?, ?, ?)
         `).run(randomUUID(), purchaseId, item.product_id, item.quantity, item.unit_cost, subtotal)
 
-        // Actualizar costo del producto al precio de la última compra
         db.prepare('UPDATE products SET cost=?, updated_at=?, synced=0 WHERE id=?')
           .run(item.unit_cost, now, item.product_id)
 
@@ -737,9 +734,9 @@ function registerHandlers() {
   })
 
   // ── USUARIOS ──
-  ipcMain.handle('users:login', (_, { pin }) => {
-    const user = db.prepare("SELECT id, name, role FROM users WHERE pin=? AND active=1").get(pin)
-    if (!user) return { error: 'PIN incorrecto' }
+  ipcMain.handle('users:login', (_, { name, password }) => {
+    const user = db.prepare("SELECT id, name, role FROM users WHERE name=? AND pin=? AND active=1").get(name, password)
+    if (!user) return { error: 'Usuario o contraseña incorrectos' }
     return user
   })
 
@@ -772,3 +769,5 @@ function applyRounding(price, mode) {
   if (isNaN(n) || n === 0) return price
   return Math.ceil(price / n) * n
 }
+
+module.exports = { initDatabase, closeDatabase }

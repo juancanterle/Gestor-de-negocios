@@ -8,7 +8,7 @@ declare global {
         update: (data: Partial<Store>) => Promise<{ ok: boolean }>
       }
       users: {
-        login: (data: { pin: string }) => Promise<User | { error: string }>
+        login: (data: { name: string; password: string }) => Promise<User | { error: string }>
         list: () => Promise<User[]>
         create: (data: { name: string; pin: string; role: string }) => Promise<User>
       }
