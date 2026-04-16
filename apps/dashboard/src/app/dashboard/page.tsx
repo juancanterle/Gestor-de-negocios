@@ -1,54 +1,56 @@
-import { supabase } from '@/lib/supabase'
-import { cookies } from 'next/headers'
+import { createClient } from '@/lib/supabase-server'
 import { redirect } from 'next/navigation'
+import { LogoutButton } from '@/app/components/LogoutButton'
 
 const fmt = (n: number) =>
   n?.toLocaleString('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }) ?? '$0'
 
-async function getData() {
+async function getData(storeId: string) {
+  const supabase = await createClient()
+
   const todayStart = new Date()
   todayStart.setHours(0, 0, 0, 0)
   const todayEnd = new Date()
   todayEnd.setHours(23, 59, 59, 999)
 
   const [salesRes, recentRes, productsRes, cashRes] = await Promise.all([
-    // KPIs del día
     supabase
       .from('sales')
       .select('total, payment_method')
+      .eq('store_id', storeId)
       .eq('status', 'COMPLETED')
       .gte('created_at', todayStart.toISOString())
       .lte('created_at', todayEnd.toISOString()),
 
-    // Últimas 6 ventas
     supabase
       .from('sales')
       .select('id, ticket_number, total, payment_method, created_at')
+      .eq('store_id', storeId)
       .eq('status', 'COMPLETED')
       .order('created_at', { ascending: false })
       .limit(6),
 
-    // Stock bajo
     supabase
       .from('products')
       .select('name, stock, stock_min, unit')
+      .eq('store_id', storeId)
       .gt('stock_min', 0)
       .filter('stock', 'lte', 'stock_min')
       .limit(10),
 
-    // Caja actual
     supabase
       .from('cash_registers')
       .select('*')
+      .eq('store_id', storeId)
       .eq('status', 'OPEN')
       .order('opened_at', { ascending: false })
       .limit(1),
   ])
 
-  const sales     = salesRes.data ?? []
-  const recent    = recentRes.data ?? []
-  const lowStock  = productsRes.data ?? []
-  const register  = cashRes.data?.[0] ?? null
+  const sales    = salesRes.data ?? []
+  const recent   = recentRes.data ?? []
+  const lowStock = productsRes.data ?? []
+  const register = cashRes.data?.[0] ?? null
 
   const totalAmount    = sales.reduce((s, v) => s + v.total, 0)
   const cashAmount     = sales.filter(v => v.payment_method === 'CASH').reduce((s, v) => s + v.total, 0)
@@ -59,10 +61,22 @@ async function getData() {
 }
 
 export default async function DashboardPage() {
-  const cookieStore = await cookies()
-  if (!cookieStore.get('dashboard_auth')) redirect('/')
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/')
 
-  const { totalAmount, cashAmount, transferAmount, ticketCount, recent, lowStock, register } = await getData()
+  const { data: storeUser } = await supabase
+    .from('store_users')
+    .select('store_id, stores(name)')
+    .eq('id', user.id)
+    .single()
+
+  if (!storeUser) redirect('/')
+
+  const storeId   = storeUser.store_id
+  const storeName = (storeUser.stores as any)?.name ?? 'Mi local'
+
+  const { totalAmount, cashAmount, transferAmount, ticketCount, recent, lowStock, register } = await getData(storeId)
 
   return (
     <div style={{ maxWidth: 480, margin: '0 auto', padding: '20px 16px 40px', minHeight: '100vh', background: '#f8fafc' }}>
@@ -70,23 +84,19 @@ export default async function DashboardPage() {
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <div>
-          <div style={{ fontSize: 20, fontWeight: 800, color: '#1e293b' }}>KioscoApp</div>
+          <div style={{ fontSize: 20, fontWeight: 800, color: '#1e293b' }}>{storeName}</div>
           <div style={{ fontSize: 12, color: '#94a3b8' }}>
             {new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })}
           </div>
         </div>
-        <form action="/api/logout" method="POST">
-          <button style={{ fontSize: 12, color: '#94a3b8', background: 'none', border: 'none', cursor: 'pointer' }}>
-            Salir
-          </button>
-        </form>
+        <LogoutButton style={{ fontSize: 12, color: '#94a3b8', background: 'none', border: 'none', cursor: 'pointer' }} />
       </div>
 
       {/* KPI cards */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20 }}>
         <KpiCard label="Ventas hoy" value={fmt(totalAmount)} sub={`${ticketCount} ticket${ticketCount !== 1 ? 's' : ''}`} color="#6366f1" span />
-        <KpiCard label="Efectivo"       value={fmt(cashAmount)}     sub="en caja"  color="#22c55e" />
-        <KpiCard label="Transferencias" value={fmt(transferAmount)} sub="digital"  color="#38bdf8" />
+        <KpiCard label="Efectivo"       value={fmt(cashAmount)}     sub="en caja" color="#22c55e" />
+        <KpiCard label="Transferencias" value={fmt(transferAmount)} sub="digital" color="#38bdf8" />
         <KpiCard label="Ticket prom."
           value={fmt(ticketCount > 0 ? totalAmount / ticketCount : 0)}
           sub="por venta" color="#f59e0b" />
@@ -134,7 +144,7 @@ export default async function DashboardPage() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 20,
                     background: s.payment_method === 'CASH' ? '#22c55e18' : '#38bdf818',
-                    color: s.payment_method === 'CASH' ? '#16a34a' : '#0284c7',
+                    color:      s.payment_method === 'CASH' ? '#16a34a'   : '#0284c7',
                     fontWeight: 600 }}>
                     {s.payment_method === 'CASH' ? 'Efectivo' : 'Transfer.'}
                   </span>
