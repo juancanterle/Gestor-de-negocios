@@ -15,7 +15,7 @@ export async function POST(request: Request) {
     {
       cookies: {
         getAll() { return cookieStore.getAll() },
-        setAll(cs) { cookiesToSetBuffer.push(...cs) },
+        setAll(cs: { name: string; value: string; options: Record<string, unknown> }[]) { cookiesToSetBuffer.push(...cs) },
       },
     }
   )
