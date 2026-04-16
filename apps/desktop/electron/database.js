@@ -2,6 +2,7 @@ const Database = require('better-sqlite3')
 const { app, ipcMain } = require('electron')
 const path = require('path')
 const { randomUUID } = require('crypto')
+const { syncSale, syncProduct, syncCashRegister, syncCashMovement } = require('./sync')
 
 let db
 
@@ -446,7 +447,9 @@ function registerHandlers() {
 
     insertPriceHistory(id, data.cost, data.markup, price_auto, data.user_id || 'admin', now)
 
-    return getProductById(id)
+    const created = getProductById(id)
+    syncProduct(created)
+    return created
   })
 
   ipcMain.handle('products:update', (_, data) => {
@@ -474,7 +477,9 @@ function registerHandlers() {
       insertPriceHistory(data.id, data.cost, data.markup, price_auto, data.user_id || 'admin', now)
     }
 
-    return getProductById(data.id)
+    const updated = getProductById(data.id)
+    syncProduct(updated)
+    return updated
   })
 
   ipcMain.handle('products:delete', (_, id) => {
@@ -532,7 +537,10 @@ function registerHandlers() {
         VALUES (?, 'sale', ?, 'INSERT', ?, 1, 'PENDING', ?, ?)
       `).run(randomUUID(), saleId, JSON.stringify({ saleId }), now, now)
 
-      return db.prepare('SELECT * FROM sales WHERE id=?').get(saleId)
+      const sale = db.prepare('SELECT * FROM sales WHERE id=?').get(saleId)
+      const saleItems = db.prepare('SELECT * FROM sale_items WHERE sale_id=?').all(saleId)
+      syncSale(sale, saleItems)
+      return sale
     })
 
     return createSale(payload)
@@ -570,7 +578,11 @@ function registerHandlers() {
       VALUES (?, ?, 'OPENING', ?, 'Apertura de caja', ?, ?)
     `).run(randomUUID(), id, data.opening_amount, data.user_id, now)
 
-    return db.prepare('SELECT * FROM cash_registers WHERE id=?').get(id)
+    const opened = db.prepare('SELECT * FROM cash_registers WHERE id=?').get(id)
+    syncCashRegister(opened)
+    const openingMov = db.prepare('SELECT * FROM cash_movements WHERE cash_register_id=? AND type=?').get(id, 'OPENING')
+    if (openingMov) syncCashMovement(openingMov)
+    return opened
   })
 
   ipcMain.handle('cashRegister:getCurrent', () => {
@@ -605,7 +617,9 @@ function registerHandlers() {
       VALUES (?, ?, 'CLOSING', ?, 'Cierre de caja', ?, ?)
     `).run(randomUUID(), data.id, data.closing_amount, data.user_id, now)
 
-    return db.prepare('SELECT * FROM cash_registers WHERE id=?').get(data.id)
+    const closed = db.prepare('SELECT * FROM cash_registers WHERE id=?').get(data.id)
+    syncCashRegister(closed)
+    return closed
   })
 
   ipcMain.handle('cashRegister:addMovement', (_, data) => {
@@ -615,7 +629,9 @@ function registerHandlers() {
       INSERT INTO cash_movements (id, cash_register_id, type, amount, description, user_id, created_at)
       VALUES (?, ?, ?, ?, ?, ?, ?)
     `).run(id, data.cash_register_id, data.type, data.amount, data.description || null, data.user_id, now)
-    return db.prepare('SELECT * FROM cash_movements WHERE id=?').get(id)
+    const mov = db.prepare('SELECT * FROM cash_movements WHERE id=?').get(id)
+    syncCashMovement(mov)
+    return mov
   })
 
   ipcMain.handle('cashRegister:getMovements', (_, registerId) => {
