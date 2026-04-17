@@ -33,7 +33,7 @@ export default function NewStorePage() {
 
   if (result) {
     return (
-      <div style={pageStyle}>
+      <div className="page-form" style={pageStyle}>
         <div style={cardStyle}>
           <div style={{
             width: 48, height: 48, borderRadius: 14,
@@ -214,7 +214,7 @@ function AlertIcon() {
 }
 
 const pageStyle: React.CSSProperties = {
-  maxWidth: 520, margin: '0 auto', padding: '32px 16px', minHeight: '100vh', background: 'var(--bg)',
+  background: 'var(--bg)',
 }
 const cardStyle: React.CSSProperties = {
   background: 'var(--surface)', border: '1px solid var(--border)',

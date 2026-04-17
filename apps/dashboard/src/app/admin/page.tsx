@@ -25,7 +25,7 @@ export default async function AdminPage() {
   const totalActive = storesWithOwner.filter(s => s.active).length
 
   return (
-    <div style={{ maxWidth: 640, margin: '0 auto', padding: '20px 16px 40px', minHeight: '100vh', background: 'var(--bg)' }}>
+    <div className="page" style={{ background: 'var(--bg)' }}>
 
       {/* Header */}
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
