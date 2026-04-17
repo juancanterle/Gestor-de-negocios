@@ -4,6 +4,18 @@ const SUPABASE_URL = 'https://ghwdnzqwtfcrqyrrurkr.supabase.co'
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdod2RuenF3dGZjcnF5cnJ1cmtyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzMDY2MjQsImV4cCI6MjA5MTg4MjYyNH0.l4HYgN-vl4j_XaKY6P9iZkAEYL7XE00vRT0i1vdKa-8'
 
 let client = null
+let _db = null   // referencia a la instancia de better-sqlite3, inyectada desde database.js
+
+// database.js llama a esto justo después de initDatabase()
+function setDb(dbInstance) {
+  _db = dbInstance
+}
+
+function getStoreId() {
+  if (!_db) return null
+  const row = _db.prepare("SELECT supabase_store_id FROM store WHERE id='default'").get()
+  return row?.supabase_store_id || null
+}
 
 function supabase() {
   if (!client) {
@@ -16,10 +28,12 @@ function supabase() {
 
 // Fire-and-forget: nunca bloquea el proceso local
 async function syncSale(sale, items) {
+  const storeId = getStoreId()
+  if (!storeId) return   // sin store_id configurado no sincroniza
   try {
     await supabase().from('sales').upsert({
       id: sale.id,
-      store_id: sale.store_id || 'default',
+      store_id: storeId,
       ticket_number: sale.ticket_number,
       total: sale.total,
       subtotal: sale.subtotal,
@@ -46,10 +60,12 @@ async function syncSale(sale, items) {
 }
 
 async function syncProduct(product) {
+  const storeId = getStoreId()
+  if (!storeId) return
   try {
     await supabase().from('products').upsert({
       id: product.id,
-      store_id: product.store_id || 'default',
+      store_id: storeId,
       name: product.name,
       barcode: product.barcode || null,
       stock: product.stock,
@@ -69,10 +85,12 @@ async function syncProduct(product) {
 }
 
 async function syncCashRegister(register) {
+  const storeId = getStoreId()
+  if (!storeId) return
   try {
     await supabase().from('cash_registers').upsert({
       id: register.id,
-      store_id: register.store_id || 'default',
+      store_id: storeId,
       status: register.status,
       opening_amount: register.opening_amount,
       closing_amount: register.closing_amount || null,
@@ -88,9 +106,12 @@ async function syncCashRegister(register) {
 }
 
 async function syncCashMovement(movement) {
+  const storeId = getStoreId()
+  if (!storeId) return
   try {
     await supabase().from('cash_movements').upsert({
       id: movement.id,
+      store_id: storeId,
       cash_register_id: movement.cash_register_id,
       type: movement.type,
       amount: movement.amount,
@@ -102,4 +123,4 @@ async function syncCashMovement(movement) {
   }
 }
 
-module.exports = { syncSale, syncProduct, syncCashRegister, syncCashMovement }
+module.exports = { setDb, syncSale, syncProduct, syncCashRegister, syncCashMovement }

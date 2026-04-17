@@ -90,7 +90,7 @@ export default function App() {
 
         {/* Nav */}
         <div style={{ flex: 1, padding: '12px 10px', display: 'flex', flexDirection: 'column', gap: 2 }}>
-          {NAV_ITEMS.map(item => {
+          {NAV_ITEMS.filter(item => item.id !== 'settings' || user.role === 'OWNER').map(item => {
             const active = screen === item.id
             return (
               <button

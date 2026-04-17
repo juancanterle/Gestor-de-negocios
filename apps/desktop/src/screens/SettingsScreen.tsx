@@ -61,6 +61,18 @@ export default function SettingsScreen({ onLogout }: { onLogout: () => void }) {
             <div style={{ fontSize: 16, fontWeight: 700, color: T.text, marginBottom: 20 }}>Datos del negocio</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
               <div style={{ gridColumn: '1 / -1' }}>
+                <label style={labelStyle}>ID de sincronización (del panel admin)</label>
+                <input
+                  value={store.supabase_store_id || ''}
+                  onChange={e => setStore(s => ({ ...s, supabase_store_id: e.target.value.trim() }))}
+                  style={inp}
+                  placeholder="Pegá el Store ID que te dio el panel de administración"
+                />
+                <div style={{ color: store.supabase_store_id ? T.success : T.warning, fontSize: 12, marginTop: 5, fontWeight: 600 }}>
+                  {store.supabase_store_id ? '✓ Sincronización activa con la nube' : '⚠ Sin ID — los datos no se sincronizan con el dashboard'}
+                </div>
+              </div>
+              <div style={{ gridColumn: '1 / -1' }}>
                 <label style={labelStyle}>Nombre del negocio</label>
                 <input value={store.name || ''} onChange={e => setStore(s => ({ ...s, name: e.target.value }))} style={inp} placeholder="Mi Kiosco" />
               </div>

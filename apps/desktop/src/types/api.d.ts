@@ -66,6 +66,7 @@ export interface Store {
   ticket_footer?: string
   currency: string
   price_round_mode: 'NONE' | '10' | '50' | '100'
+  supabase_store_id?: string
 }
 
 export interface User {

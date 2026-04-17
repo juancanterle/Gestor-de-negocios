@@ -2,7 +2,7 @@ const Database = require('better-sqlite3')
 const { app, ipcMain } = require('electron')
 const path = require('path')
 const { randomUUID } = require('crypto')
-const { syncSale, syncProduct, syncCashRegister, syncCashMovement } = require('./sync')
+const { setDb, syncSale, syncProduct, syncCashRegister, syncCashMovement } = require('./sync')
 
 let db
 
@@ -16,6 +16,7 @@ function initDatabase() {
   db.pragma('foreign_keys = ON')
 
   runMigrations()
+  setDb(db)
   registerHandlers()
 
   console.log('Base de datos iniciada en:', dbPath)
@@ -40,13 +41,19 @@ function runMigrations() {
 
   const migrations = [
     { name: '001_initial_schema', sql: migration001 },
+    { name: '002_supabase_store_id', sql: migration002 },
   ]
 
   const ran = db.prepare('SELECT name FROM migrations').all().map(r => r.name)
 
   for (const m of migrations) {
     if (!ran.includes(m.name)) {
-      db.exec(m.sql)
+      try {
+        db.exec(m.sql)
+      } catch (e) {
+        // ALTER TABLE falla si la columna ya existe (DB antigua) — ignoramos
+        console.warn('Migración con advertencia:', m.name, e.message)
+      }
       db.prepare('INSERT INTO migrations (name, run_at) VALUES (?, ?)').run(m.name, new Date().toISOString())
       console.log('Migración ejecutada:', m.name)
     }
@@ -278,6 +285,10 @@ const migration001 = `
   CREATE INDEX IF NOT EXISTS idx_sync_status ON sync_queue(status, priority, created_at);
 `
 
+const migration002 = `
+  ALTER TABLE store ADD COLUMN supabase_store_id TEXT;
+`
+
 // ─────────────────────────────────────────
 // HELPERS INTERNOS
 // ─────────────────────────────────────────
@@ -323,9 +334,9 @@ function registerHandlers() {
 
   ipcMain.handle('store:update', (_, data) => {
     db.prepare(`
-      UPDATE store SET name=?, address=?, phone=?, ticket_header=?, ticket_footer=?, price_round_mode=?
+      UPDATE store SET name=?, address=?, phone=?, ticket_header=?, ticket_footer=?, price_round_mode=?, supabase_store_id=?
       WHERE id='default'
-    `).run(data.name, data.address, data.phone, data.ticket_header, data.ticket_footer, data.price_round_mode)
+    `).run(data.name, data.address, data.phone, data.ticket_header, data.ticket_footer, data.price_round_mode, data.supabase_store_id || null)
     return { ok: true }
   })
 
