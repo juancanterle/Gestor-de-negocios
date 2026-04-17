@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next'
+import './tokens.css'
 
 export const metadata: Metadata = {
   title: 'KioscoApp — Dashboard',
@@ -13,9 +14,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es">
-      <body style={{ margin: 0, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif', background: '#f8fafc' }}>
-        {children}
-      </body>
+      <body>{children}</body>
     </html>
   )
 }
