@@ -1,21 +1,14 @@
 import { useState, useRef, useEffect } from 'react'
+import { T, labelStyle } from '../theme'
 import type { User } from '../types/api'
 
-interface Props {
-  onLogin: (user: User) => void
-}
-
-const $ = {
-  bg: '#0f1117', surface: '#1a1d27', border: '#2a2d3a',
-  text: '#e2e8f0', muted: '#64748b', primary: '#6366f1',
-  danger: '#ef4444',
-}
+interface Props { onLogin: (user: User) => void }
 
 export default function LoginScreen({ onLogin }: Props) {
-  const [name, setName]       = useState('')
+  const [name, setName]         = useState('')
   const [password, setPassword] = useState('')
-  const [error, setError]     = useState('')
-  const [loading, setLoading] = useState(false)
+  const [error, setError]       = useState('')
+  const [loading, setLoading]   = useState(false)
   const nameRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => { nameRef.current?.focus() }, [])
@@ -38,31 +31,59 @@ export default function LoginScreen({ onLogin }: Props) {
   return (
     <div style={{
       height: '100vh',
-      background: $.bg,
+      background: T.bg,
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif',
     }}>
+      {/* Fondo decorativo */}
       <div style={{
-        background: $.surface,
-        border: `1px solid ${$.border}`,
-        borderRadius: 16,
-        padding: '40px 48px',
-        width: 380,
+        position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none',
       }}>
-        {/* Header */}
-        <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <div style={{ fontSize: 26, fontWeight: 800, color: $.primary, marginBottom: 6 }}>
+        <div style={{
+          position: 'absolute', top: -200, left: -200,
+          width: 600, height: 600, borderRadius: '50%',
+          background: `radial-gradient(circle, ${T.primary}08, transparent 70%)`,
+        }} />
+        <div style={{
+          position: 'absolute', bottom: -200, right: -200,
+          width: 500, height: 500, borderRadius: '50%',
+          background: `radial-gradient(circle, ${T.cash}06, transparent 70%)`,
+        }} />
+      </div>
+
+      <div style={{
+        background: T.card,
+        border: `1px solid ${T.border}`,
+        borderRadius: T.rXl,
+        padding: '44px 48px',
+        width: 400,
+        position: 'relative',
+        boxShadow: '0 24px 64px rgba(0,0,0,0.5)',
+      }}>
+
+        {/* Logo */}
+        <div style={{ textAlign: 'center', marginBottom: 36 }}>
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            width: 56, height: 56, borderRadius: 16,
+            background: `linear-gradient(135deg, ${T.primary}, #6366f1)`,
+            marginBottom: 16, boxShadow: `0 8px 24px ${T.primary}40`,
+          }}>
+            <span style={{ fontSize: 26 }}>🏪</span>
+          </div>
+          <div style={{ fontSize: 26, fontWeight: 800, color: T.text, letterSpacing: '-0.5px' }}>
             KioscoApp
           </div>
-          <div style={{ color: $.muted, fontSize: 13 }}>
+          <div style={{ color: T.sub, fontSize: 13, marginTop: 4 }}>
             Ingresá con tu usuario y contraseña
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
           <div>
-            <label style={lbl}>Usuario</label>
+            <label style={labelStyle}>Usuario</label>
             <input
               ref={nameRef}
               value={name}
@@ -74,27 +95,30 @@ export default function LoginScreen({ onLogin }: Props) {
           </div>
 
           <div>
-            <label style={lbl}>Contraseña</label>
+            <label style={labelStyle}>Contraseña</label>
             <input
               type="password"
               value={password}
               onChange={e => setPassword(e.target.value)}
               style={inp}
-              placeholder="••••"
+              placeholder="••••••••"
               autoComplete="current-password"
             />
           </div>
 
           {error && (
             <div style={{
-              color: $.danger,
+              color: T.danger,
               fontSize: 13,
-              background: `${$.danger}15`,
-              border: `1px solid ${$.danger}44`,
-              borderRadius: 8,
-              padding: '8px 12px',
+              background: T.dangerBg,
+              border: `1px solid ${T.danger}55`,
+              borderRadius: T.r,
+              padding: '10px 14px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
             }}>
-              {error}
+              ⚠ {error}
             </div>
           )}
 
@@ -102,29 +126,36 @@ export default function LoginScreen({ onLogin }: Props) {
             type="submit"
             disabled={!name.trim() || !password.trim() || loading}
             style={{
-              marginTop: 4,
-              padding: '12px 0',
-              borderRadius: 10,
+              marginTop: 6,
+              padding: '14px 0',
+              borderRadius: T.r,
               border: 'none',
-              background: name.trim() && password.trim() ? $.primary : $.border,
+              background: name.trim() && password.trim()
+                ? `linear-gradient(135deg, ${T.primary}, #6366f1)`
+                : T.border,
               color: '#fff',
               fontSize: 15,
-              fontWeight: 600,
+              fontWeight: 700,
               cursor: name.trim() && password.trim() ? 'pointer' : 'default',
-              transition: 'background 0.15s',
+              transition: 'opacity 0.15s',
+              opacity: loading ? 0.7 : 1,
+              boxShadow: name.trim() && password.trim() ? `0 4px 16px ${T.primary}40` : 'none',
             }}
           >
-            {loading ? 'Verificando...' : 'Ingresar'}
+            {loading ? 'Verificando...' : 'Ingresar al sistema'}
           </button>
         </form>
 
-        <div style={{ marginTop: 20, textAlign: 'center', color: '#374151', fontSize: 11 }}>
-          Usuario por defecto: <span style={{ color: $.muted }}>Administrador</span> · Contraseña: <span style={{ color: $.muted }}>1234</span>
+        <div style={{ marginTop: 24, textAlign: 'center', color: T.faint, fontSize: 11, borderTop: `1px solid ${T.border}`, paddingTop: 18 }}>
+          Por defecto: <span style={{ color: T.sub }}>Administrador</span> / <span style={{ color: T.sub }}>1234</span>
         </div>
       </div>
     </div>
   )
 }
 
-const lbl: React.CSSProperties = { display: 'block', fontSize: 11, color: '#64748b', marginBottom: 5, fontWeight: 500 }
-const inp: React.CSSProperties = { width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #2a2d3a', background: '#0f1117', color: '#e2e8f0', fontSize: 14, outline: 'none', boxSizing: 'border-box' }
+const inp: React.CSSProperties = {
+  width: '100%', padding: '11px 14px', borderRadius: T.r,
+  border: `1.5px solid ${T.border}`, background: T.input,
+  color: T.text, fontSize: 14, outline: 'none', boxSizing: 'border-box',
+}

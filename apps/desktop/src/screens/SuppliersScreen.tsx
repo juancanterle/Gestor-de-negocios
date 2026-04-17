@@ -1,12 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Plus, Edit2, Trash2, X, Package } from 'lucide-react'
+import { T, labelStyle, overlayStyle } from '../theme'
 import type { Supplier } from '../types/api'
-
-const $ = {
-  bg: '#0f1117', surface: '#1a1d27', border: '#2a2d3a',
-  text: '#e2e8f0', muted: '#64748b', primary: '#6366f1',
-  success: '#22c55e', warning: '#f59e0b', danger: '#ef4444',
-}
 
 const EMPTY: Partial<Supplier> = { name: '', contact: '', phone: '', notes: '' }
 
@@ -24,7 +19,6 @@ export default function SuppliersScreen() {
 
   useEffect(() => {
     if (!detail) { setStats(null); return }
-    // Cargar stats del proveedor via reportes generales y filtrar
     window.api.reports.salesSummary().then(r => {
       const sup = r.bySupplier.find((s: any) => s.supplier_name === detail.name)
       setStats({ sold: sup?.total_amount || 0, qty: sup?.total_qty || 0, lowStock: r.lowStock })
@@ -51,20 +45,20 @@ export default function SuppliersScreen() {
   const fmt = (n: number) => n.toLocaleString('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 })
 
   return (
-    <div style={{ flex: 1, display: 'flex', height: '100%', overflow: 'hidden' }}>
+    <div style={{ flex: 1, display: 'flex', height: '100%', overflow: 'hidden', background: T.bg }}>
 
       {/* Lista */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <div style={{ padding: '16px 20px', borderBottom: `1px solid ${$.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ fontSize: 15, fontWeight: 700, color: $.text }}>Proveedores</div>
-          <button onClick={openCreate} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 8, border: 'none', background: $.primary, color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+        <div style={{ padding: '16px 20px', borderBottom: `1px solid ${T.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ fontSize: 18, fontWeight: 700, color: T.text }}>Proveedores</div>
+          <button onClick={openCreate} style={primaryBtn}>
             <Plus size={15} /> Nuevo proveedor
           </button>
         </div>
 
         <div style={{ flex: 1, overflowY: 'auto', padding: 20 }}>
           {suppliers.length === 0 ? (
-            <div style={{ textAlign: 'center', color: $.muted, fontSize: 13, marginTop: 40 }}>No hay proveedores cargados</div>
+            <div style={{ textAlign: 'center', color: T.sub, fontSize: 14, marginTop: 60 }}>No hay proveedores cargados</div>
           ) : (
             <div style={{ display: 'grid', gap: 10 }}>
               {suppliers.map(s => (
@@ -72,20 +66,25 @@ export default function SuppliersScreen() {
                   key={s.id}
                   onClick={() => setDetail(detail?.id === s.id ? null : s)}
                   style={{
-                    background: $.surface, borderRadius: 12, padding: '14px 16px',
-                    border: `1px solid ${detail?.id === s.id ? $.primary : $.border}`,
-                    cursor: 'pointer', transition: 'border-color 0.15s',
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    background: T.card,
+                    borderRadius: T.rLg,
+                    padding: '16px 18px',
+                    border: `1.5px solid ${detail?.id === s.id ? T.primary : T.border}`,
+                    cursor: 'pointer',
+                    transition: 'border-color 0.15s',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
                   }}
                 >
                   <div>
-                    <div style={{ color: $.text, fontWeight: 600, fontSize: 14 }}>{s.name}</div>
-                    {s.contact && <div style={{ color: $.muted, fontSize: 12, marginTop: 2 }}>{s.contact}</div>}
-                    {s.phone   && <div style={{ color: $.muted, fontSize: 12 }}>📞 {s.phone}</div>}
+                    <div style={{ color: T.text, fontWeight: 700, fontSize: 15 }}>{s.name}</div>
+                    {s.contact && <div style={{ color: T.sub, fontSize: 12, marginTop: 3 }}>{s.contact}</div>}
+                    {s.phone   && <div style={{ color: T.sub, fontSize: 12 }}>📞 {s.phone}</div>}
                   </div>
                   <div style={{ display: 'flex', gap: 6 }}>
-                    <button onClick={e => { e.stopPropagation(); openEdit(s) }} style={iconBtn}><Edit2 size={14} /></button>
-                    <button onClick={e => { e.stopPropagation(); handleDelete(s.id) }} style={{ ...iconBtn, color: $.danger }}><Trash2 size={14} /></button>
+                    <button onClick={e => { e.stopPropagation(); openEdit(s) }} style={iconBtn}><Edit2 size={15} /></button>
+                    <button onClick={e => { e.stopPropagation(); handleDelete(s.id) }} style={{ ...iconBtn, color: T.danger }}><Trash2 size={15} /></button>
                   </div>
                 </div>
               ))}
@@ -96,38 +95,38 @@ export default function SuppliersScreen() {
 
       {/* Panel de detalle */}
       {detail && (
-        <div style={{ width: 320, borderLeft: `1px solid ${$.border}`, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-          <div style={{ padding: '16px 20px', borderBottom: `1px solid ${$.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: $.text }}>{detail.name}</div>
-            <button onClick={() => setDetail(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: $.muted }}><X size={18} /></button>
+        <div style={{ width: 320, borderLeft: `1px solid ${T.border}`, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: T.surface }}>
+          <div style={{ padding: '16px 20px', borderBottom: `1px solid ${T.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: T.text }}>{detail.name}</div>
+            <button onClick={() => setDetail(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: T.sub }}><X size={18} /></button>
           </div>
 
-          <div style={{ flex: 1, overflowY: 'auto', padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {/* Estadísticas del día */}
-            <div style={{ background: $.bg, borderRadius: 10, padding: 14, border: `1px solid ${$.border}` }}>
-              <div style={{ fontSize: 11, color: $.muted, marginBottom: 10, fontWeight: 600 }}>VENTAS HOY</div>
+          <div style={{ flex: 1, overflowY: 'auto', padding: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
+            {/* Ventas del día */}
+            <div style={{ background: T.card, borderRadius: T.r, padding: 16, border: `1px solid ${T.border}` }}>
+              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', color: T.sub, marginBottom: 12, textTransform: 'uppercase' }}>Ventas hoy</div>
               <div style={{ display: 'flex', gap: 10 }}>
                 <div style={{ flex: 1, textAlign: 'center' }}>
-                  <div style={{ fontSize: 18, fontWeight: 800, color: $.primary }}>{fmt(stats?.sold || 0)}</div>
-                  <div style={{ fontSize: 11, color: $.muted }}>Vendido</div>
+                  <div style={{ fontSize: 20, fontWeight: 800, color: T.primary }}>{fmt(stats?.sold || 0)}</div>
+                  <div style={{ fontSize: 11, color: T.sub, marginTop: 2 }}>Vendido</div>
                 </div>
                 <div style={{ flex: 1, textAlign: 'center' }}>
-                  <div style={{ fontSize: 18, fontWeight: 800, color: $.success }}>{stats?.qty || 0}</div>
-                  <div style={{ fontSize: 11, color: $.muted }}>Unidades</div>
+                  <div style={{ fontSize: 20, fontWeight: 800, color: T.success }}>{stats?.qty || 0}</div>
+                  <div style={{ fontSize: 11, color: T.sub, marginTop: 2 }}>Unidades</div>
                 </div>
               </div>
             </div>
 
-            {/* Productos con stock bajo */}
+            {/* Stock bajo */}
             {stats?.lowStock?.length > 0 && (
               <div>
-                <div style={{ fontSize: 11, color: $.warning, marginBottom: 8, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <Package size={12} /> STOCK BAJO
+                <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', color: T.warning, marginBottom: 8, textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <Package size={12} /> Stock bajo
                 </div>
                 {stats.lowStock.map((p: any, i: number) => (
-                  <div key={i} style={{ padding: '6px 0', borderBottom: `1px solid ${$.border}`, display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
-                    <span style={{ color: $.text }}>{p.name}</span>
-                    <span style={{ color: $.warning }}>{p.stock} {p.unit}</span>
+                  <div key={i} style={{ padding: '7px 0', borderBottom: `1px solid ${T.border}`, display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                    <span style={{ color: T.text }}>{p.name}</span>
+                    <span style={{ color: T.warning, fontWeight: 600 }}>{p.stock} {p.unit}</span>
                   </div>
                 ))}
               </div>
@@ -135,8 +134,8 @@ export default function SuppliersScreen() {
 
             {detail.notes && (
               <div>
-                <div style={{ fontSize: 11, color: $.muted, marginBottom: 6 }}>NOTAS</div>
-                <div style={{ color: $.text, fontSize: 13, background: $.bg, borderRadius: 8, padding: 10 }}>{detail.notes}</div>
+                <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', color: T.sub, marginBottom: 6, textTransform: 'uppercase' }}>Notas</div>
+                <div style={{ color: T.text, fontSize: 13, background: T.card, borderRadius: T.r, padding: '10px 12px', border: `1px solid ${T.border}` }}>{detail.notes}</div>
               </div>
             )}
           </div>
@@ -146,34 +145,34 @@ export default function SuppliersScreen() {
       {/* Modal */}
       {modal && (
         <div style={overlayStyle}>
-          <div style={{ background: $.surface, border: `1px solid ${$.border}`, borderRadius: 14, padding: 28, width: 440 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}>
-              <div style={{ fontSize: 15, fontWeight: 700, color: $.text }}>{isEdit ? 'Editar proveedor' : 'Nuevo proveedor'}</div>
-              <button onClick={() => setModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: $.muted }}><X size={18} /></button>
+          <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: T.rXl, padding: 28, width: 460, boxShadow: '0 24px 64px rgba(0,0,0,0.6)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 22 }}>
+              <div style={{ fontSize: 18, fontWeight: 700, color: T.text }}>{isEdit ? 'Editar proveedor' : 'Nuevo proveedor'}</div>
+              <button onClick={() => setModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: T.sub }}><X size={20} /></button>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div>
-                <label style={lbl}>Nombre *</label>
-                <input value={editing.name || ''} onChange={e => setEditing(p => ({ ...p, name: e.target.value }))} style={inp} placeholder="Ej: Arcor, Mastellone..." />
+                <label style={labelStyle}>Nombre *</label>
+                <input value={editing.name || ''} onChange={e => setEditing(p => ({ ...p, name: e.target.value }))} style={inp} placeholder="Ej: Arcor, Mastellone..." autoFocus />
               </div>
               <div>
-                <label style={lbl}>Contacto</label>
+                <label style={labelStyle}>Contacto</label>
                 <input value={editing.contact || ''} onChange={e => setEditing(p => ({ ...p, contact: e.target.value }))} style={inp} placeholder="Nombre del vendedor" />
               </div>
               <div>
-                <label style={lbl}>Teléfono</label>
+                <label style={labelStyle}>Teléfono</label>
                 <input value={editing.phone || ''} onChange={e => setEditing(p => ({ ...p, phone: e.target.value }))} style={inp} placeholder="+54 11 ..." />
               </div>
               <div>
-                <label style={lbl}>Notas</label>
+                <label style={labelStyle}>Notas</label>
                 <textarea value={editing.notes || ''} onChange={e => setEditing(p => ({ ...p, notes: e.target.value }))}
-                  style={{ ...inp, minHeight: 72, resize: 'vertical' }} placeholder="Días de visita, condiciones..." />
+                  style={{ ...inp, minHeight: 80, resize: 'vertical' }} placeholder="Días de visita, condiciones..." />
               </div>
             </div>
-            <div style={{ display: 'flex', gap: 10, marginTop: 20, justifyContent: 'flex-end' }}>
-              <button onClick={() => setModal(false)} style={{ padding: '8px 18px', borderRadius: 8, border: `1px solid ${$.border}`, background: 'transparent', color: $.muted, fontSize: 13, cursor: 'pointer' }}>Cancelar</button>
-              <button onClick={handleSave} style={{ padding: '8px 22px', borderRadius: 8, border: 'none', background: $.primary, color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
-                {isEdit ? 'Guardar' : 'Crear'}
+            <div style={{ display: 'flex', gap: 10, marginTop: 22, justifyContent: 'flex-end' }}>
+              <button onClick={() => setModal(false)} style={cancelBtn}>Cancelar</button>
+              <button onClick={handleSave} style={primaryBtn}>
+                {isEdit ? 'Guardar' : 'Crear proveedor'}
               </button>
             </div>
           </div>
@@ -183,7 +182,19 @@ export default function SuppliersScreen() {
   )
 }
 
-const iconBtn: React.CSSProperties = { background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', padding: '4px 6px' }
-const overlayStyle: React.CSSProperties = { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }
-const lbl: React.CSSProperties = { display: 'block', fontSize: 11, color: '#64748b', marginBottom: 5, fontWeight: 500 }
-const inp: React.CSSProperties = { width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #2a2d3a', background: '#0f1117', color: '#e2e8f0', fontSize: 13, outline: 'none' }
+const inp: React.CSSProperties = {
+  width: '100%', padding: '10px 14px', borderRadius: T.r,
+  border: `1.5px solid ${T.border}`, background: T.input,
+  color: T.text, fontSize: 14, outline: 'none', boxSizing: 'border-box',
+}
+const iconBtn: React.CSSProperties = { background: 'none', border: 'none', cursor: 'pointer', color: T.sub, padding: '5px 7px' }
+const primaryBtn: React.CSSProperties = {
+  display: 'flex', alignItems: 'center', gap: 6,
+  padding: '10px 18px', borderRadius: T.r, border: 'none',
+  background: T.primary, color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+}
+const cancelBtn: React.CSSProperties = {
+  padding: '10px 18px', borderRadius: T.r,
+  border: `1.5px solid ${T.border}`, background: 'transparent',
+  color: T.sub, fontSize: 13, cursor: 'pointer',
+}

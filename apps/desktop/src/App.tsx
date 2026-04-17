@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
 import {
   ShoppingCart, Package, Users, Truck, ShoppingBag,
-  BarChart2, Settings, DollarSign
+  BarChart2, Settings, DollarSign, LogOut,
 } from 'lucide-react'
+import { T } from './theme'
 import LoginScreen from './screens/LoginScreen'
 import POSScreen from './screens/POSScreen'
 import ProductsScreen from './screens/ProductsScreen'
@@ -18,20 +19,23 @@ type Screen =
   | 'purchases' | 'cash' | 'reports' | 'settings'
 
 const NAV_ITEMS: { id: Screen; label: string; icon: React.ReactNode }[] = [
-  { id: 'pos',       label: 'Venta',      icon: <ShoppingCart size={18} /> },
-  { id: 'products',  label: 'Productos',  icon: <Package size={18} /> },
-  { id: 'purchases', label: 'Compras',    icon: <ShoppingBag size={18} /> },
-  { id: 'suppliers', label: 'Proveedores',icon: <Truck size={18} /> },
-  { id: 'cash',      label: 'Caja',       icon: <DollarSign size={18} /> },
-  { id: 'reports',   label: 'Reportes',   icon: <BarChart2 size={18} /> },
-  { id: 'settings',  label: 'Config.',    icon: <Settings size={18} /> },
+  { id: 'pos',       label: 'Venta',        icon: <ShoppingCart size={20} /> },
+  { id: 'products',  label: 'Productos',    icon: <Package size={20} /> },
+  { id: 'purchases', label: 'Compras',      icon: <ShoppingBag size={20} /> },
+  { id: 'suppliers', label: 'Proveedores',  icon: <Truck size={20} /> },
+  { id: 'cash',      label: 'Caja',         icon: <DollarSign size={20} /> },
+  { id: 'reports',   label: 'Reportes',     icon: <BarChart2 size={20} /> },
+  { id: 'settings',  label: 'Configuración',icon: <Settings size={20} /> },
 ]
 
+const roleLabel: Record<string, string> = {
+  OWNER: 'Dueño', MANAGER: 'Encargado', CASHIER: 'Cajero',
+}
+
 export default function App() {
-  const [user, setUser] = useState<User | null>(null)
+  const [user, setUser]   = useState<User | null>(null)
   const [screen, setScreen] = useState<Screen>('pos')
 
-  // Guardar sesión mientras la app está abierta
   useEffect(() => {
     const saved = sessionStorage.getItem('user')
     if (saved) setUser(JSON.parse(saved))
@@ -40,7 +44,6 @@ export default function App() {
   const handleLogin = async (u: User) => {
     setUser(u)
     sessionStorage.setItem('user', JSON.stringify(u))
-    // Si no hay caja abierta, ir directo a la pantalla de caja
     const register = await window.api.cashRegister.getCurrent()
     if (!register) setScreen('cash')
   }
@@ -50,9 +53,7 @@ export default function App() {
     sessionStorage.removeItem('user')
   }
 
-  if (!user) {
-    return <LoginScreen onLogin={handleLogin} />
-  }
+  if (!user) return <LoginScreen onLogin={handleLogin} />
 
   const renderScreen = () => {
     switch (screen) {
@@ -68,27 +69,27 @@ export default function App() {
   }
 
   return (
-    <div style={{ display: 'flex', height: '100vh', background: '#0f1117' }}>
-      {/* Sidebar */}
+    <div style={{ display: 'flex', height: '100vh', background: T.bg, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif' }}>
+
+      {/* ── Sidebar ── */}
       <nav style={{
-        width: 180,
-        background: '#1a1d27',
-        borderRight: '1px solid #2a2d3a',
+        width: 210,
+        background: T.sidebar,
+        borderRight: `1px solid ${T.sidebarB}`,
         display: 'flex',
         flexDirection: 'column',
-        padding: '16px 0',
         flexShrink: 0,
       }}>
         {/* Logo */}
-        <div style={{ padding: '0 16px 20px', borderBottom: '1px solid #2a2d3a' }}>
-          <div style={{ fontSize: 16, fontWeight: 700, color: '#6366f1' }}>KioscoApp</div>
-          <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
-            {user.name} · {user.role === 'OWNER' ? 'Dueño' : user.role === 'MANAGER' ? 'Encargado' : 'Cajero'}
+        <div style={{ padding: '22px 20px 18px', borderBottom: `1px solid ${T.sidebarB}` }}>
+          <div style={{ fontSize: 18, fontWeight: 800, color: T.primary, letterSpacing: '-0.3px' }}>
+            KioscoApp
           </div>
+          <div style={{ fontSize: 12, color: T.sub, marginTop: 3 }}>Sistema de caja</div>
         </div>
 
-        {/* Nav items */}
-        <div style={{ flex: 1, padding: '12px 8px' }}>
+        {/* Nav */}
+        <div style={{ flex: 1, padding: '12px 10px', display: 'flex', flexDirection: 'column', gap: 2 }}>
           {NAV_ITEMS.map(item => {
             const active = screen === item.id
             return (
@@ -99,29 +100,33 @@ export default function App() {
                   width: '100%',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 10,
-                  padding: '9px 12px',
-                  borderRadius: 8,
+                  gap: 12,
+                  padding: '11px 12px',
+                  borderRadius: T.r,
                   border: 'none',
                   cursor: 'pointer',
-                  marginBottom: 2,
-                  background: active ? '#6366f1' : 'transparent',
-                  color: active ? '#fff' : '#94a3b8',
-                  fontSize: 13,
-                  fontWeight: active ? 600 : 400,
-                  transition: 'all 0.15s',
+                  background: active ? `${T.primary}18` : 'transparent',
+                  color: active ? T.primary : T.sub,
+                  fontSize: 13.5,
+                  fontWeight: active ? 700 : 400,
                   textAlign: 'left',
+                  transition: 'all 0.12s',
+                  boxShadow: active ? `inset 3px 0 0 ${T.primary}` : 'none',
                 }}
               >
-                {item.icon}
+                <span style={{ opacity: active ? 1 : 0.7 }}>{item.icon}</span>
                 {item.label}
               </button>
             )
           })}
         </div>
 
-        {/* Users icon en footer */}
-        <div style={{ padding: '12px 8px', borderTop: '1px solid #2a2d3a' }}>
+        {/* User footer */}
+        <div style={{ padding: '12px 10px', borderTop: `1px solid ${T.sidebarB}` }}>
+          <div style={{ padding: '10px 12px', marginBottom: 6, background: T.card, borderRadius: T.r, border: `1px solid ${T.border}` }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: T.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.name}</div>
+            <div style={{ fontSize: 11, color: T.sub, marginTop: 2 }}>{roleLabel[user.role] ?? user.role}</div>
+          </div>
           <button
             onClick={handleLogout}
             style={{
@@ -130,21 +135,21 @@ export default function App() {
               alignItems: 'center',
               gap: 10,
               padding: '9px 12px',
-              borderRadius: 8,
+              borderRadius: T.r,
               border: 'none',
               cursor: 'pointer',
               background: 'transparent',
-              color: '#64748b',
+              color: T.sub,
               fontSize: 13,
             }}
           >
-            <Users size={18} />
+            <LogOut size={16} />
             Cambiar usuario
           </button>
         </div>
       </nav>
 
-      {/* Main content */}
+      {/* ── Main ── */}
       <main style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
         {renderScreen()}
       </main>
