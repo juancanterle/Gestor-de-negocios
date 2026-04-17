@@ -23,10 +23,10 @@ const SIZES: Record<Size, CSSProperties> = {
 
 const VARIANTS: Record<Variant, CSSProperties> = {
   primary: {
-    background: color.brandGrad,
+    background: color.ctaGrad,
     color: '#fff',
-    border: '1px solid rgba(255,255,255,0.08)',
-    boxShadow: '0 8px 22px rgba(79,70,229,0.35)',
+    border: 'none',
+    boxShadow: '0 0 32px rgba(56,189,248,0.35)',
   },
   secondary: {
     background: color.surface,
