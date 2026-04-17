@@ -22,12 +22,16 @@ export function ToggleStoreButton({ storeId, active }: { storeId: string; active
       onClick={handleToggle}
       disabled={loading}
       style={{
-        fontSize: 12, fontWeight: 600, padding: '5px 12px', borderRadius: 8, border: 'none', cursor: 'pointer',
-        background: active ? '#fef2f2' : '#f0fdf4',
-        color:      active ? '#ef4444' : '#22c55e',
+        fontSize: 12, fontWeight: 600, padding: '6px 12px',
+        borderRadius: 999, cursor: loading ? 'default' : 'pointer',
+        background: active ? 'var(--danger-tint)' : 'var(--success-tint)',
+        color:      active ? 'var(--danger-500)' : 'var(--success-600)',
+        border:     active ? '1px solid rgba(239,68,68,0.25)' : '1px solid rgba(34,197,94,0.25)',
+        fontFamily: 'inherit',
+        whiteSpace: 'nowrap',
       }}
     >
-      {loading ? '...' : active ? 'Desactivar' : 'Activar'}
+      {loading ? '…' : active ? 'Desactivar' : 'Activar'}
     </button>
   )
 }

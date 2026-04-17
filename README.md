@@ -64,8 +64,24 @@ Gestor-de-negocios/
 
 | App | Framework | UI | Base de datos | Auth |
 |---|---|---|---|---|
-| Desktop | Electron 41 + React 19 + Vite 8 | Inline + GSAP (rediseño en curso) | SQLite (`better-sqlite3`) + sync a Supabase | usuario/contraseña local (tabla `users` en SQLite) |
-| Dashboard | Next.js 15 (App Router, SSR) | Inline | Supabase (postgres) | Supabase Auth (email + contraseña) |
+| Desktop | Electron 41 + React 19 + Vite 8 | Design tokens (`ui/theme.ts`) + GSAP — tema **dark** | SQLite (`better-sqlite3`) + sync a Supabase | usuario/contraseña local (tabla `users` en SQLite) |
+| Dashboard | Next.js 15 (App Router, SSR) | Design tokens (`app/tokens.css`) — tema **light** (login dark) | Supabase (postgres) | Supabase Auth (email + contraseña) |
+
+### Design system
+
+Las dos apps comparten un design system unificado generado con **Claude Design** (bundle: `kioscoapp-design-system/`). La fuente de verdad son los design tokens — colores, tipografía, spacing, radios, shadows, gradientes — materializados de dos formas equivalentes:
+
+- **Desktop:** `apps/desktop/src/ui/theme.ts` exporta los tokens como constantes tipadas (`color`, `radius`, `shadow`, `pad`, `easing`) que los screens consumen en estilos inline. Tema **dark** (`#0f1117` canvas, `#1a1d27` surface, `#6366f1` brand indigo).
+- **Dashboard:** `apps/dashboard/src/app/tokens.css` expone los mismos tokens como CSS variables (`var(--brand-500)`, `var(--surface)`, …). Tema **light** por default; el login usa un gradient radial dark + glass card (única concesión "fancy" del producto — marca el momento pre-app).
+
+**Reglas fundacionales** (ver `SKILL.md` del bundle para la versión completa):
+1. El dinero es lo más grande en pantalla. `tabular-nums`, coma decimal, `$1.480`.
+2. Un solo color primario por pantalla — indigo para decisiones, sky para momentos transitorios (login), verde/ámbar/rojo solo para status.
+3. Dark en el POS, light en el dashboard. Nunca se mezclan.
+4. Voseo argentino, imperativos cortos: *Cobrar*, *Abrir caja*, *Escaneá o buscá un producto*.
+5. Nada de emojis en producción — iconos `lucide-react` en desktop, SVGs inline lucide-style en dashboard.
+
+Si agregás una pantalla nueva, **empezá siempre desde los tokens** y extendé `04-components.html` del bundle si necesitás un patrón nuevo. Nunca hardcodees un color hex ni inventes una nueva familia de colores.
 
 ---
 
