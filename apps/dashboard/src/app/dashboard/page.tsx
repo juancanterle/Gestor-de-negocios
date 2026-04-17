@@ -85,7 +85,7 @@ export default async function DashboardPage() {
   const avgTicket  = ticketCount > 0 ? totalAmount / ticketCount : 0
 
   return (
-    <div style={{ maxWidth: 480, margin: '0 auto', padding: '20px 16px 40px', minHeight: '100vh', background: 'var(--bg)' }}>
+    <div className="page" style={{ background: 'var(--bg)' }}>
 
       {/* ── Greeting header ── */}
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
@@ -103,79 +103,83 @@ export default async function DashboardPage() {
         }} />
       </header>
 
-      {/* ── Hero: Ventas hoy ── */}
-      <section style={{
-        padding: '26px 22px 22px', borderRadius: 22,
-        background: 'var(--g-hero)', color: '#fff',
-        position: 'relative', overflow: 'hidden',
-        boxShadow: 'var(--glow-brand)',
-        marginBottom: 14,
-      }}>
-        <div aria-hidden style={{
-          position: 'absolute', width: 180, height: 180, borderRadius: '50%',
-          background: 'rgba(255,255,255,0.12)', top: -60, right: -50,
-        }} />
-        <div style={{
-          fontSize: 11, textTransform: 'uppercase', fontWeight: 600,
-          letterSpacing: 1.5, opacity: 0.85, position: 'relative',
-        }}>Ventas hoy</div>
-        <div style={{
-          fontSize: 44, fontWeight: 800, letterSpacing: '-0.025em',
-          marginTop: 8, fontVariantNumeric: 'tabular-nums', position: 'relative', lineHeight: 1,
-        }}>
-          ${fmtInt(totalAmount)}
-          <span style={{ fontSize: 22, opacity: 0.7, fontWeight: 600, marginLeft: 1 }}>
-            ,{fmtCents(totalAmount)}
-          </span>
-        </div>
-        <div style={{
-          marginTop: 18, paddingTop: 14,
-          borderTop: '1px solid rgba(255,255,255,0.18)',
-          fontSize: 12, opacity: 0.95,
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          position: 'relative',
-        }}>
-          <span style={{ opacity: 0.85 }}>
-            {ticketCount} {ticketCount === 1 ? 'ticket' : 'tickets'}
-            {ticketCount > 0 && ` · ticket prom. ${fmt(avgTicket)}`}
-          </span>
-        </div>
-      </section>
-
-      {/* ── Caja ── */}
-      <CajaCard register={register} />
-
-      {/* ── Attention: low stock ── */}
-      {lowStock.length > 0 && (
-        <AttentionCard
-          count={lowStock.length}
-          outOfStock={outOfStock}
-          belowMin={belowMin}
-        />
-      )}
-
-      {/* ── Efectivo / Transferencias ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, margin: '12px 0' }}>
-        <MiniCard label="Efectivo"       value={fmt(cashAmount)}     tone="success" />
-        <MiniCard label="Transferencias" value={fmt(transferAmount)} tone="sky" />
-      </div>
-
-      {/* ── Últimas ventas ── */}
-      <div style={{ marginTop: 8 }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 10 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-strong)' }}>Últimas ventas</div>
-          {recent.length > 0 && (
-            <div style={{ fontSize: 12, color: 'var(--brand-500)', fontWeight: 600 }}>{recent.length}</div>
-          )}
-        </div>
-        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden' }}>
-          {recent.length === 0 ? (
-            <div style={{ color: 'var(--text-dim)', fontSize: 13, padding: '18px', textAlign: 'center' }}>
-              Todavía no vendiste hoy.
+      <div className="grid-dashboard">
+        {/* ── Main column: hero + mini-grid + last sales ── */}
+        <div className="col-main">
+          {/* Hero: Ventas hoy */}
+          <section style={{
+            padding: '26px 22px 22px', borderRadius: 22,
+            background: 'var(--g-hero)', color: '#fff',
+            position: 'relative', overflow: 'hidden',
+            boxShadow: 'var(--glow-brand)',
+          }}>
+            <div aria-hidden style={{
+              position: 'absolute', width: 220, height: 220, borderRadius: '50%',
+              background: 'rgba(255,255,255,0.12)', top: -70, right: -60,
+            }} />
+            <div style={{
+              fontSize: 11, textTransform: 'uppercase', fontWeight: 600,
+              letterSpacing: 1.5, opacity: 0.85, position: 'relative',
+            }}>Ventas hoy</div>
+            <div style={{
+              fontSize: 44, fontWeight: 800, letterSpacing: '-0.025em',
+              marginTop: 8, fontVariantNumeric: 'tabular-nums', position: 'relative', lineHeight: 1,
+            }}>
+              ${fmtInt(totalAmount)}
+              <span style={{ fontSize: 22, opacity: 0.7, fontWeight: 600, marginLeft: 1 }}>
+                ,{fmtCents(totalAmount)}
+              </span>
             </div>
-          ) : recent.map((s, i) => (
-            <SaleRow key={s.id} sale={s} isLast={i === recent.length - 1} />
-          ))}
+            <div style={{
+              marginTop: 18, paddingTop: 14,
+              borderTop: '1px solid rgba(255,255,255,0.18)',
+              fontSize: 12, opacity: 0.95,
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              position: 'relative',
+            }}>
+              <span style={{ opacity: 0.85 }}>
+                {ticketCount} {ticketCount === 1 ? 'ticket' : 'tickets'}
+                {ticketCount > 0 && ` · ticket prom. ${fmt(avgTicket)}`}
+              </span>
+            </div>
+          </section>
+
+          {/* Efectivo / Transferencias */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            <MiniCard label="Efectivo"       value={fmt(cashAmount)}     tone="success" />
+            <MiniCard label="Transferencias" value={fmt(transferAmount)} tone="sky" />
+          </div>
+
+          {/* Últimas ventas */}
+          <div>
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 10 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-strong)' }}>Últimas ventas</div>
+              {recent.length > 0 && (
+                <div style={{ fontSize: 12, color: 'var(--brand-500)', fontWeight: 600 }}>{recent.length}</div>
+              )}
+            </div>
+            <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden' }}>
+              {recent.length === 0 ? (
+                <div style={{ color: 'var(--text-dim)', fontSize: 13, padding: '18px', textAlign: 'center' }}>
+                  Todavía no vendiste hoy.
+                </div>
+              ) : recent.map((s, i) => (
+                <SaleRow key={s.id} sale={s} isLast={i === recent.length - 1} />
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* ── Side column: caja + attention ── */}
+        <div className="col-side">
+          <CajaCard register={register} />
+          {lowStock.length > 0 && (
+            <AttentionCard
+              count={lowStock.length}
+              outOfStock={outOfStock}
+              belowMin={belowMin}
+            />
+          )}
         </div>
       </div>
 

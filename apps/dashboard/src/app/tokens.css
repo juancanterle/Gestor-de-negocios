@@ -90,3 +90,96 @@ body {
   box-shadow: 0 0 0 2px var(--brand-500), 0 0 0 4px var(--brand-tint);
   border-radius: var(--r-md);
 }
+
+/* ================================================================
+   LOGIN — mobile-first, centered on wider viewports
+================================================================ */
+.login-wrap {
+  min-height: 100dvh;
+  background: var(--bg-login);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 48px 20px 28px;
+}
+.login-stack {
+  width: 100%;
+  max-width: 380px;
+  display: flex;
+  flex-direction: column;
+  gap: 48px;
+  align-items: stretch;
+}
+.login-stack > :first-child { margin-top: 24px; }
+.login-card {
+  padding: 28px 24px 24px;
+  border-radius: 28px;
+  background: linear-gradient(180deg, rgba(40,48,66,0.55), rgba(30,36,50,0.55));
+  border: 1px solid rgba(255,255,255,0.08);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 30px 60px -20px rgba(0,0,0,0.6);
+}
+
+/* Tablet + desktop: center vertically, tighter rhythm */
+@media (min-width: 640px) {
+  .login-wrap { align-items: center; padding: 40px 24px; }
+  .login-stack { gap: 28px; }
+  .login-stack > :first-child { margin-top: 0; }
+}
+
+/* ================================================================
+   PAGE LAYOUTS — mobile-first, scale up on tablet + desktop
+================================================================ */
+.page {
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 20px 16px 40px;
+  min-height: 100vh;
+}
+@media (min-width: 768px)  { .page { max-width: 720px;  padding: 28px 24px 48px; } }
+@media (min-width: 1024px) { .page { max-width: 1040px; padding: 36px 32px 56px; } }
+@media (min-width: 1280px) { .page { max-width: 1180px; } }
+
+/* Form-centric page: narrower on desktop, always centered */
+.page-form {
+  width: 100%;
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 32px 16px;
+  min-height: 100vh;
+}
+@media (min-width: 768px) { .page-form { padding: 56px 24px; } }
+
+/* Responsive card grids */
+.grid-kpi {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 1fr 1fr;
+}
+@media (min-width: 768px)  { .grid-kpi { gap: 16px; } }
+@media (min-width: 1024px) { .grid-kpi { grid-template-columns: repeat(4, 1fr); } }
+
+/* Dashboard (owner view): single column on mobile; main + sidebar on desktop */
+.grid-dashboard {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: 1fr;
+}
+.grid-dashboard .col-main,
+.grid-dashboard .col-side {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+@media (min-width: 900px) {
+  .grid-dashboard {
+    grid-template-columns: minmax(0, 1fr) 340px;
+    gap: 24px;
+    align-items: start;
+  }
+  .grid-dashboard .col-main,
+  .grid-dashboard .col-side { gap: 16px; }
+}
