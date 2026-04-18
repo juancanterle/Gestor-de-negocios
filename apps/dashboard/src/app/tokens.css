@@ -1,0 +1,185 @@
+/* ================================================================
+   KioscoApp — Design Tokens
+   Single source of truth for colors, type, spacing, radius, shadows.
+   Source: kioscoapp-design-system/project/tokens.css
+================================================================ */
+
+:root {
+  --brand-500:        #6366f1;
+  --brand-400:        #818cf8;
+  --brand-600:        #4f46e5;
+  --brand-700:        #4338ca;
+
+  --accent-cyan:      #22d3ee;
+  --accent-sky:       #38bdf8;
+  --accent-blue:      #3b82f6;
+  --accent-violet:    #7c3aed;
+
+  --success-500:      #22c55e;
+  --success-600:      #16a34a;
+  --warning-500:      #f59e0b;
+  --warning-600:      #b45309;
+  --danger-500:       #ef4444;
+  --danger-300:       #fca5a5;
+
+  --bg:               #f8fafc;
+  --bg-lower:         #f1f5f9;
+  --bg-raised:        #ffffff;
+  --surface:          #ffffff;
+  --surface-2:        #f1f5f9;
+  --border:           #e2e8f0;
+  --border-soft:      #f1f5f9;
+
+  --text:             #1e293b;
+  --text-strong:      #0f172a;
+  --text-muted:       #64748b;
+  --text-dim:         #94a3b8;
+  --text-faint:       #cbd5e1;
+
+  --brand-tint:       rgba(99,102,241,0.10);
+  --brand-tint-soft:  rgba(99,102,241,0.05);
+  --sky-tint:         rgba(56,189,248,0.12);
+  --success-tint:     rgba(34,197,94,0.12);
+  --warning-tint:     rgba(245,158,11,0.10);
+  --danger-tint:      rgba(239,68,68,0.10);
+
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, "JetBrains Mono", monospace;
+
+  --shadow-xs:  0 1px 3px rgba(15,23,42,0.06);
+  --shadow-sm:  0 4px 10px rgba(15,23,42,0.06);
+  --shadow-md:  0 8px 24px rgba(15,23,42,0.10);
+  --shadow-lg:  0 20px 60px rgba(15,23,42,0.12);
+
+  --glow-brand:   0 14px 30px -12px rgba(99,102,241,0.55);
+  --glow-sky:     0 12px 24px -10px rgba(56,189,248,0.55);
+
+  --bg-login:  radial-gradient(ellipse at 50% 20%, #2a3345 0%, #1a1f2c 45%, #0f131b 100%);
+
+  --g-logo:    linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #38bdf8 100%);
+  --g-hero:    linear-gradient(135deg, #6366f1 0%, #818cf8 50%, #38bdf8 100%);
+  --g-cta:     linear-gradient(135deg, #6366f1, #38bdf8);
+
+  --r-sm:   6px;
+  --r-md:   8px;
+  --r-lg:  10px;
+  --r-xl:  12px;
+  --r-2xl: 14px;
+  --r-3xl: 16px;
+  --r-4xl: 24px;
+  --r-pill: 999px;
+
+  --ease-out:    cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --dur-fast: 120ms;
+  --dur-base: 180ms;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: var(--font-sans);
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--brand-500), 0 0 0 4px var(--brand-tint);
+  border-radius: var(--r-md);
+}
+
+/* ================================================================
+   LOGIN — mobile-first, centered on wider viewports
+================================================================ */
+.login-wrap {
+  min-height: 100dvh;
+  background: var(--bg-login);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 48px 20px 28px;
+}
+.login-stack {
+  width: 100%;
+  max-width: 380px;
+  display: flex;
+  flex-direction: column;
+  gap: 48px;
+  align-items: stretch;
+}
+.login-stack > :first-child { margin-top: 24px; }
+.login-card {
+  padding: 28px 24px 24px;
+  border-radius: 28px;
+  background: linear-gradient(180deg, rgba(40,48,66,0.55), rgba(30,36,50,0.55));
+  border: 1px solid rgba(255,255,255,0.08);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 30px 60px -20px rgba(0,0,0,0.6);
+}
+
+/* Tablet + desktop: center vertically, tighter rhythm */
+@media (min-width: 640px) {
+  .login-wrap { align-items: center; padding: 40px 24px; }
+  .login-stack { gap: 28px; }
+  .login-stack > :first-child { margin-top: 0; }
+}
+
+/* ================================================================
+   PAGE LAYOUTS — mobile-first, scale up on tablet + desktop
+================================================================ */
+.page {
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 20px 16px 40px;
+  min-height: 100vh;
+}
+@media (min-width: 768px)  { .page { max-width: 720px;  padding: 28px 24px 48px; } }
+@media (min-width: 1024px) { .page { max-width: 1040px; padding: 36px 32px 56px; } }
+@media (min-width: 1280px) { .page { max-width: 1180px; } }
+
+/* Form-centric page: narrower on desktop, always centered */
+.page-form {
+  width: 100%;
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 32px 16px;
+  min-height: 100vh;
+}
+@media (min-width: 768px) { .page-form { padding: 56px 24px; } }
+
+/* Responsive card grids */
+.grid-kpi {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 1fr 1fr;
+}
+@media (min-width: 768px)  { .grid-kpi { gap: 16px; } }
+@media (min-width: 1024px) { .grid-kpi { grid-template-columns: repeat(4, 1fr); } }
+
+/* Dashboard (owner view): single column on mobile; main + sidebar on desktop */
+.grid-dashboard {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: 1fr;
+}
+.grid-dashboard .col-main,
+.grid-dashboard .col-side {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+@media (min-width: 900px) {
+  .grid-dashboard {
+    grid-template-columns: minmax(0, 1fr) 340px;
+    gap: 24px;
+    align-items: start;
+  }
+  .grid-dashboard .col-main,
+  .grid-dashboard .col-side { gap: 16px; }
+}
