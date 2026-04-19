@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { TrendingUp, AlertTriangle, Truck, BarChart2 } from 'lucide-react'
 import { T } from '../theme'
+import { unwrap } from '../lib/api'
 import type { SalesSummary, SalesByDay } from '../types/api'
 
 type Period = 'today' | 'week' | 'month'
@@ -28,7 +29,10 @@ export default function ReportsScreen() {
     Promise.all([
       window.api.reports.salesSummary({ date_from: from, date_to: to }),
       window.api.reports.salesByDay({ date_from: from, date_to: to }),
-    ]).then(([s, d]) => { setSummary(s); setByDay(d) })
+    ]).then(([s, d]) => {
+      try { setSummary(unwrap(s)); setByDay(unwrap(d)) }
+      catch { setSummary(null); setByDay([]) }
+    })
   }, [period])
 
   const fmt = (n: number) => n?.toLocaleString('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }) || '$0'
@@ -144,11 +148,11 @@ export default function ReportsScreen() {
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ color: T.sub, fontSize: 11, borderBottom: `1px solid ${T.border}`, textAlign: 'left' }}>
-                  <th style={th}>#</th>
-                  <th style={th}>PRODUCTO</th>
-                  <th style={{ ...th, textAlign: 'right' }}>UNIDADES</th>
-                  <th style={{ ...th, textAlign: 'right' }}>TOTAL</th>
-                  <th style={{ ...th, textAlign: 'right' }}>MARGEN</th>
+                  <th scope="col" style={th}>#</th>
+                  <th scope="col" style={th}>PRODUCTO</th>
+                  <th scope="col" style={{ ...th, textAlign: 'right' }}>UNIDADES</th>
+                  <th scope="col" style={{ ...th, textAlign: 'right' }}>TOTAL</th>
+                  <th scope="col" style={{ ...th, textAlign: 'right' }}>MARGEN</th>
                 </tr>
               </thead>
               <tbody>
@@ -175,10 +179,10 @@ export default function ReportsScreen() {
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ color: T.sub, fontSize: 11, borderBottom: `1px solid ${T.border}`, textAlign: 'left' }}>
-                  <th style={th}>PROVEEDOR</th>
-                  <th style={{ ...th, textAlign: 'right' }}>UNIDADES</th>
-                  <th style={{ ...th, textAlign: 'right' }}>TOTAL VENDIDO</th>
-                  <th style={{ ...th, textAlign: 'right' }}>% DEL TOTAL</th>
+                  <th scope="col" style={th}>PROVEEDOR</th>
+                  <th scope="col" style={{ ...th, textAlign: 'right' }}>UNIDADES</th>
+                  <th scope="col" style={{ ...th, textAlign: 'right' }}>TOTAL VENDIDO</th>
+                  <th scope="col" style={{ ...th, textAlign: 'right' }}>% DEL TOTAL</th>
                 </tr>
               </thead>
               <tbody>
@@ -219,10 +223,10 @@ export default function ReportsScreen() {
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
                   <tr style={{ color: T.sub, fontSize: 11, borderBottom: `1px solid ${T.border}`, textAlign: 'left' }}>
-                    <th style={th}>PRODUCTO</th>
-                    <th style={{ ...th, textAlign: 'right' }}>STOCK ACTUAL</th>
-                    <th style={{ ...th, textAlign: 'right' }}>STOCK MÍNIMO</th>
-                    <th style={{ ...th, textAlign: 'right' }}>DIFERENCIA</th>
+                    <th scope="col" style={th}>PRODUCTO</th>
+                    <th scope="col" style={{ ...th, textAlign: 'right' }}>STOCK ACTUAL</th>
+                    <th scope="col" style={{ ...th, textAlign: 'right' }}>STOCK MÍNIMO</th>
+                    <th scope="col" style={{ ...th, textAlign: 'right' }}>DIFERENCIA</th>
                   </tr>
                 </thead>
                 <tbody>

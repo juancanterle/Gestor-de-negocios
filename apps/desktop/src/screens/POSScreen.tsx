@@ -1,6 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { Trash2, Plus, Minus, ShoppingCart, Search, CheckCircle } from 'lucide-react'
-import { T, overlayStyle } from '../theme'
+import { Trash2, Plus, Minus, ShoppingCart, Search, CheckCircle, ScanLine, Banknote, Smartphone, Lock } from 'lucide-react'
+import { T } from '../theme'
+import { qtyBtn } from '../styles/inputs'
+import { useToast } from '../hooks/useToast'
+import { unwrap } from '../lib/api'
 import type { User, Product, CartItem } from '../types/api'
 
 interface Props { user: User }
@@ -22,14 +25,18 @@ export default function POSScreen({ user }: Props) {
   const scanRef   = useRef<HTMLInputElement>(null)
   const searchRef = useRef<HTMLInputElement>(null)
   const paidRef   = useRef<HTMLInputElement>(null)
+  const toast     = useToast()
 
   const total  = cart.reduce((s, i) => s + i.quantity * i.unit_price, 0)
   const change = payMethod === 'CASH' ? (parseFloat(amountPaid) || 0) - total : 0
 
   useEffect(() => {
-    window.api.cashRegister.getCurrent().then(r => {
-      if (r) setRegister(r)
-      else setNoRegister(true)
+    window.api.cashRegister.getCurrent().then(raw => {
+      try {
+        const r = unwrap(raw)
+        if (r) setRegister(r)
+        else setNoRegister(true)
+      } catch { setNoRegister(true) }
     })
   }, [])
 
@@ -39,10 +46,13 @@ export default function POSScreen({ user }: Props) {
   }, [step, cart])
 
   useEffect(() => {
-    if (!search.trim()) { setResults([]); return }
+    const q = search.trim()
     const t = setTimeout(async () => {
-      const r = await window.api.products.list({ search: search.trim() })
-      setResults(r.slice(0, 8))
+      if (!q) { setResults([]); return }
+      try {
+        const r = unwrap(await window.api.products.list({ search: q }))
+        setResults(r.slice(0, 8))
+      } catch { setResults([]) }
     }, 150)
     return () => clearTimeout(t)
   }, [search])
@@ -71,12 +81,17 @@ export default function POSScreen({ user }: Props) {
     if (e.key !== 'Enter') return
     const val = (e.target as HTMLInputElement).value.trim()
     if (!val) return
-    const p = await window.api.products.getByBarcode(val)
-    if (p) {
-      addProduct(p)
-      ;(e.target as HTMLInputElement).value = ''
-    } else {
-      ;(e.target as HTMLInputElement).select()
+    try {
+      const p = unwrap(await window.api.products.getByBarcode(val))
+      if (p) {
+        addProduct(p)
+        ;(e.target as HTMLInputElement).value = ''
+      } else {
+        ;(e.target as HTMLInputElement).select()
+        toast.warning('Producto no encontrado')
+      }
+    } catch {
+      toast.error('No se pudo buscar el producto')
     }
   }
 
@@ -93,240 +108,138 @@ export default function POSScreen({ user }: Props) {
   const confirmSale = async () => {
     if (!register || cart.length === 0) return
     if (payMethod === 'CASH' && parseFloat(amountPaid) < total) return
-    const sale = await window.api.sales.create({
-      user_id: user.id, cash_register_id: register.id,
-      items: cart, subtotal: total, total, payment_method: payMethod,
-      amount_paid: payMethod === 'CASH' ? parseFloat(amountPaid) : undefined,
-      change_given: payMethod === 'CASH' ? change : undefined,
-    })
-    setLastTicket(sale.ticket_number)
-    setCart([]); setAmountPaid(''); setPayMethod('CASH'); setStep('done')
+    try {
+      const sale = unwrap(await window.api.sales.create({
+        user_id: user.id, cash_register_id: register.id,
+        items: cart, subtotal: total, total, payment_method: payMethod,
+        amount_paid: payMethod === 'CASH' ? parseFloat(amountPaid) : undefined,
+        change_given: payMethod === 'CASH' ? change : undefined,
+      }))
+      setLastTicket(sale.ticket_number)
+      setCart([]); setAmountPaid(''); setPayMethod('CASH'); setStep('done')
+    } catch {
+      toast.error('No se pudo registrar la venta')
+    }
   }
 
-  // ── Sin caja ──
   if (noRegister) return (
-    <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16, background: T.bg }}>
-      <div style={{ fontSize: 48 }}>🔒</div>
-      <div style={{ fontSize: 20, fontWeight: 700, color: T.warning }}>No hay caja abierta</div>
-      <div style={{ color: T.sub, fontSize: 14 }}>Abrí la caja desde el módulo Caja antes de vender.</div>
+    <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 14, background: T.bg }}>
+      <Lock size={40} strokeWidth={1.5} color={T.sub} aria-hidden="true" />
+      <div style={{ fontSize: 18, fontWeight: 600, color: T.text }}>No hay caja abierta</div>
+      <div style={{ color: T.sub, fontSize: 13 }}>Abrí la caja desde el módulo Caja antes de vender.</div>
     </div>
   )
 
-  // ── Venta confirmada ──
   if (step === 'done') return (
-    <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 24, background: T.bg }}>
-      <div style={{
-        width: 100, height: 100, borderRadius: '50%',
-        background: `${T.cash}20`,
-        border: `3px solid ${T.cash}`,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-      }}>
-        <CheckCircle size={52} color={T.cash} strokeWidth={2} />
-      </div>
+    <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 20, background: T.bg }}>
+      <CheckCircle size={56} color={T.cash} strokeWidth={1.75} aria-hidden="true" />
       <div style={{ textAlign: 'center' }}>
-        <div style={{ fontSize: 28, fontWeight: 800, color: T.text }}>¡Venta confirmada!</div>
-        <div style={{ fontSize: 16, color: T.sub, marginTop: 6 }}>Ticket N° <strong style={{ color: T.primary }}>{lastTicket}</strong></div>
+        <div style={{ fontSize: 22, fontWeight: 700, color: T.text }}>Venta confirmada</div>
+        <div style={{ fontSize: 13, color: T.sub, marginTop: 6 }}>Ticket N° <span style={{ color: T.text, fontWeight: 600, fontFamily: 'ui-monospace, monospace' }}>{lastTicket}</span></div>
       </div>
-      <button
-        onClick={() => setStep('cart')}
-        style={{
-          padding: '16px 48px', borderRadius: T.r, border: 'none',
-          background: T.primary, color: '#fff', fontSize: 16, fontWeight: 700,
-          cursor: 'pointer', boxShadow: `0 4px 20px ${T.primary}50`,
-        }}
-      >
+      <button onClick={() => setStep('cart')} style={{ padding: '10px 24px', borderRadius: 8, border: 'none', background: T.primary, color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
         Nueva venta
       </button>
     </div>
   )
 
-  // ── Checkout ──
-  if (step === 'checkout') return (
-    <div style={{ ...overlayStyle, position: 'relative', flex: 1, background: T.bg }}>
-      <div style={{
-        background: T.card, border: `1px solid ${T.border}`,
-        borderRadius: T.rXl, padding: 36, width: 460,
-        boxShadow: '0 24px 64px rgba(0,0,0,0.5)',
-      }}>
-        <div style={{ fontSize: 20, fontWeight: 800, color: T.text, marginBottom: 28 }}>Confirmar cobro</div>
-
-        {/* Total */}
-        <div style={{
-          background: T.bg, borderRadius: T.r, padding: '16px 20px', marginBottom: 28,
-          border: `1px solid ${T.border}`, textAlign: 'center',
-        }}>
-          <div style={{ fontSize: 13, color: T.sub, marginBottom: 4 }}>
-            {cart.length} producto{cart.length !== 1 ? 's' : ''} · {cart.reduce((s, i) => s + i.quantity, 0)} unidades
+  if (step === 'checkout') {
+    const canConfirm = payMethod === 'TRANSFER' || (parseFloat(amountPaid) || 0) >= total
+    return (
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', background: T.bg }}>
+        <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: T.rLg, padding: 28, width: `min(420px, calc(100vw - 32px))`, boxShadow: '0 8px 24px rgba(0,0,0,0.35)' }}>
+          <div style={{ fontSize: 16, fontWeight: 600, color: T.text, marginBottom: 20 }}>Confirmar cobro</div>
+          <div style={{ marginBottom: 24 }}>
+            <div style={{ fontSize: 12, color: T.sub, marginBottom: 4 }}>
+              {cart.length} producto{cart.length !== 1 ? 's' : ''} · {cart.reduce((s, i) => s + i.quantity, 0)} unidades
+            </div>
+            <div style={{ fontSize: 36, fontWeight: 700, color: T.text, lineHeight: 1.1, fontVariantNumeric: 'tabular-nums' }}>{fmt(total)}</div>
           </div>
-          <div style={{ fontSize: 52, fontWeight: 900, color: T.primary, lineHeight: 1.1, letterSpacing: '-1px' }}>
-            {fmt(total)}
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ fontSize: 11, fontWeight: 600, color: T.sub, marginBottom: 8, letterSpacing: '0.04em' }}>FORMA DE PAGO</div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {(['CASH', 'TRANSFER'] as const).map(m => (
+                <button key={m} onClick={() => { setPayMethod(m); setAmountPaid('') }} style={{
+                  flex: 1, padding: '10px 0', borderRadius: 8,
+                  border: `1px solid ${payMethod === m ? (m === 'CASH' ? T.cash : T.transfer) : T.border}`,
+                  background: payMethod === m ? (m === 'CASH' ? T.cashBg : T.transferBg) : 'transparent',
+                  color: payMethod === m ? (m === 'CASH' ? T.cash : T.transfer) : T.sub,
+                  fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                }}>
+                  {m === 'CASH' ? <Banknote size={15} aria-hidden="true" /> : <Smartphone size={15} aria-hidden="true" />}
+                  {m === 'CASH' ? 'Efectivo' : 'Transferencia'}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
-
-        {/* Forma de pago */}
-        <div style={{ marginBottom: 22 }}>
-          <div style={{ fontSize: 11, fontWeight: 600, color: T.sub, marginBottom: 10, letterSpacing: '0.06em' }}>FORMA DE PAGO</div>
-          <div style={{ display: 'flex', gap: 10 }}>
-            {(['CASH', 'TRANSFER'] as const).map(m => (
-              <button key={m} onClick={() => { setPayMethod(m); setAmountPaid('') }} style={{
-                flex: 1, padding: '14px 0', borderRadius: T.r,
-                border: `2px solid ${payMethod === m ? (m === 'CASH' ? T.cash : T.transfer) : T.border}`,
-                background: payMethod === m ? (m === 'CASH' ? T.cashBg : T.transferBg) : 'transparent',
-                color: payMethod === m ? (m === 'CASH' ? T.cash : T.transfer) : T.sub,
-                fontSize: 15, fontWeight: 700, cursor: 'pointer', transition: 'all 0.15s',
-              }}>
-                {m === 'CASH' ? '💵 Efectivo' : '📲 Transferencia'}
-              </button>
-            ))}
+          {payMethod === 'CASH' && (
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: T.sub, marginBottom: 8, letterSpacing: '0.04em' }}>MONTO RECIBIDO</div>
+              <input id="pos-paid" name="pos-paid" ref={paidRef} type="number" value={amountPaid} onChange={e => setAmountPaid(e.target.value)}
+                placeholder="0" aria-label="Monto recibido"
+                style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: `1px solid ${T.border}`, background: T.input, color: T.text, fontSize: 22, fontWeight: 600, textAlign: 'center', outline: 'none', fontVariantNumeric: 'tabular-nums', boxSizing: 'border-box' }} />
+              {parseFloat(amountPaid) >= total && (
+                <div style={{ marginTop: 10, padding: '10px 14px', borderRadius: 8, background: T.cashBg, border: `1px solid ${T.cash}40`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ color: T.cash, fontWeight: 500, fontSize: 13 }}>Vuelto</span>
+                  <span style={{ color: T.cash, fontWeight: 600, fontSize: 18, fontVariantNumeric: 'tabular-nums' }}>{fmt(change)}</span>
+                </div>
+              )}
+            </div>
+          )}
+          {payMethod === 'TRANSFER' && (
+            <div style={{ marginBottom: 20, padding: '10px 14px', borderRadius: 8, background: T.transferBg, border: `1px solid ${T.transfer}40` }}>
+              <div style={{ color: T.transfer, fontSize: 13 }}>Confirmá la transferencia antes de cobrar.</div>
+            </div>
+          )}
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button onClick={() => setStep('cart')} style={{ flex: 1, padding: '10px 0', borderRadius: 8, border: `1px solid ${T.border}`, background: 'transparent', color: T.sub, fontSize: 13, fontWeight: 500, cursor: 'pointer' }}>Volver</button>
+            <button onClick={confirmSale} disabled={!canConfirm} style={{ flex: 2, padding: '10px 0', borderRadius: 8, border: 'none', background: canConfirm ? T.cash : T.border, color: canConfirm ? '#fff' : T.faint, fontSize: 14, fontWeight: 600, cursor: canConfirm ? 'pointer' : 'not-allowed' }}>
+              Confirmar cobro
+            </button>
           </div>
-        </div>
-
-        {/* Monto recibido */}
-        {payMethod === 'CASH' && (
-          <div style={{ marginBottom: 22 }}>
-            <div style={{ fontSize: 11, fontWeight: 600, color: T.sub, marginBottom: 10, letterSpacing: '0.06em' }}>MONTO RECIBIDO</div>
-            <input
-              ref={paidRef}
-              type="number"
-              value={amountPaid}
-              onChange={e => setAmountPaid(e.target.value)}
-              placeholder="0"
-              style={{
-                width: '100%', padding: '14px 16px', borderRadius: T.r,
-                border: `2px solid ${amountPaid && parseFloat(amountPaid) >= total ? T.cash : T.border}`,
-                background: T.input, color: T.text, fontSize: 32, fontWeight: 800,
-                textAlign: 'center', outline: 'none', transition: 'border-color 0.15s',
-              }}
-            />
-            {parseFloat(amountPaid) >= total && (
-              <div style={{
-                marginTop: 12, padding: '14px 18px', borderRadius: T.r,
-                background: T.cashBg, border: `1px solid ${T.cash}55`,
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-              }}>
-                <span style={{ color: T.cash, fontWeight: 600, fontSize: 15 }}>Vuelto</span>
-                <span style={{ color: T.cash, fontWeight: 900, fontSize: 28 }}>{fmt(change)}</span>
-              </div>
-            )}
-          </div>
-        )}
-
-        {payMethod === 'TRANSFER' && (
-          <div style={{ marginBottom: 22, padding: '14px 18px', borderRadius: T.r, background: T.transferBg, border: `1px solid ${T.transfer}55`, textAlign: 'center' }}>
-            <div style={{ color: T.transfer, fontSize: 14, fontWeight: 600 }}>📲 Confirmá la transferencia antes de cobrar</div>
-          </div>
-        )}
-
-        <div style={{ display: 'flex', gap: 12 }}>
-          <button onClick={() => setStep('cart')} style={{
-            flex: 1, padding: '14px 0', borderRadius: T.r,
-            border: `1.5px solid ${T.border}`, background: 'transparent',
-            color: T.sub, fontSize: 14, fontWeight: 600, cursor: 'pointer',
-          }}>
-            ← Volver
-          </button>
-          <button
-            onClick={confirmSale}
-            disabled={payMethod === 'CASH' && (parseFloat(amountPaid) || 0) < total}
-            style={{
-              flex: 2, padding: '14px 0', borderRadius: T.r, border: 'none',
-              background: payMethod === 'TRANSFER' || (parseFloat(amountPaid) || 0) >= total
-                ? `linear-gradient(135deg, ${T.cash}, #16a34a)`
-                : T.border,
-              color: '#fff', fontSize: 16, fontWeight: 800, cursor: 'pointer',
-              boxShadow: payMethod === 'TRANSFER' || (parseFloat(amountPaid) || 0) >= total
-                ? `0 4px 20px ${T.cash}50` : 'none',
-              transition: 'all 0.15s',
-            }}
-          >
-            Confirmar cobro
-          </button>
         </div>
       </div>
-    </div>
-  )
+    )
+  }
 
-  // ── Carrito ──
   return (
     <div style={{ flex: 1, display: 'flex', height: '100%', overflow: 'hidden', background: T.bg }}>
 
-      {/* Panel izquierdo — scanner + carrito */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', borderRight: `1px solid ${T.border}`, overflow: 'hidden' }}>
-
-        {/* Scanner */}
-        <div style={{ padding: '14px 16px', borderBottom: `1px solid ${T.border}`, background: T.surface }}>
+        <div style={{ padding: '12px 16px', borderBottom: `1px solid ${T.border}`, background: T.surface }}>
           <div style={{ display: 'flex', gap: 8 }}>
             <div style={{ position: 'relative', flex: 1 }}>
-              <input
-                ref={scanRef}
-                onKeyDown={handleScan}
-                placeholder="Escaneá un código de barras o presioná el botón de búsqueda →"
-                style={{
-                  width: '100%', padding: '12px 14px 12px 44px',
-                  borderRadius: T.r, border: `1.5px solid ${T.border}`,
-                  background: T.input, color: T.text, fontSize: 14,
-                  outline: 'none', boxSizing: 'border-box',
-                  transition: 'border-color 0.15s',
-                }}
-              />
-              <span style={{
-                position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)',
-                fontSize: 18,
-              }}>
-                📷
+              <input id="pos-scan" name="pos-scan" ref={scanRef} onKeyDown={handleScan} placeholder="Escaneá un código de barras" aria-label="Código de barras"
+                style={{ width: '100%', padding: '9px 12px 9px 36px', borderRadius: 8, border: `1px solid ${T.border}`, background: T.input, color: T.text, fontSize: 13, outline: 'none', boxSizing: 'border-box' }} />
+              <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', display: 'flex', alignItems: 'center', color: T.sub }} aria-hidden="true">
+                <ScanLine size={16} />
               </span>
             </div>
-            <button
-              onClick={() => { setShowSearch(s => !s); setTimeout(() => searchRef.current?.focus(), 50) }}
-              style={{
-                padding: '12px 16px', borderRadius: T.r,
-                border: `1.5px solid ${showSearch ? T.primary : T.border}`,
-                background: showSearch ? `${T.primary}18` : T.card,
-                color: showSearch ? T.primary : T.sub,
-                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600, fontSize: 13,
-              }}
-            >
-              <Search size={16} /> Buscar
+            <button onClick={() => { setShowSearch(s => !s); setTimeout(() => searchRef.current?.focus(), 50) }} style={{
+              padding: '9px 12px', borderRadius: 8,
+              border: `1px solid ${showSearch ? T.primary : T.border}`,
+              background: showSearch ? `${T.primary}14` : 'transparent',
+              color: showSearch ? T.text : T.sub,
+              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontWeight: 500, fontSize: 13,
+            }}>
+              <Search size={14} aria-hidden="true" /> Buscar
             </button>
           </div>
-
-          {/* Búsqueda por nombre */}
           {showSearch && (
-            <div style={{ marginTop: 10, position: 'relative' }}>
-              <input
-                ref={searchRef}
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                placeholder="Buscá por nombre del producto..."
-                style={{
-                  width: '100%', padding: '10px 14px',
-                  borderRadius: T.r, border: `1.5px solid ${T.primary}`,
-                  background: T.input, color: T.text, fontSize: 14,
-                  outline: 'none', boxSizing: 'border-box',
-                }}
-              />
+            <div style={{ marginTop: 8, position: 'relative' }}>
+              <input id="pos-search" name="pos-search" ref={searchRef} value={search} onChange={e => setSearch(e.target.value)}
+                placeholder="Buscar por nombre" aria-label="Buscar producto por nombre"
+                style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: `1px solid ${T.border}`, background: T.input, color: T.text, fontSize: 13, outline: 'none', boxSizing: 'border-box' }} />
               {results.length > 0 && (
-                <div style={{
-                  position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 10,
-                  background: T.card, border: `1.5px solid ${T.border}`, borderRadius: T.rLg,
-                  boxShadow: '0 12px 32px rgba(0,0,0,0.5)', overflow: 'hidden',
-                }}>
-                  {results.map(p => (
-                    <button key={p.id} onClick={() => addProduct(p)} style={{
-                      width: '100%', padding: '12px 16px',
-                      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                      border: 'none', background: 'transparent', color: T.text,
-                      cursor: 'pointer', borderBottom: `1px solid ${T.border}`,
-                      fontSize: 14, textAlign: 'left',
-                    }}>
+                <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 10, background: T.card, border: `1px solid ${T.border}`, borderRadius: 8, boxShadow: '0 6px 16px rgba(0,0,0,0.3)', overflow: 'hidden' }}>
+                  {results.map((p, idx) => (
+                    <button key={p.id} onClick={() => addProduct(p)} style={{ width: '100%', padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: 'none', background: 'transparent', color: T.text, cursor: 'pointer', borderBottom: idx === results.length - 1 ? 'none' : `1px solid ${T.border}`, fontSize: 13, textAlign: 'left' }}>
                       <div>
-                        <div style={{ fontWeight: 600 }}>{p.name}</div>
-                        {p.barcode && <div style={{ color: T.sub, fontSize: 11, marginTop: 2 }}>{p.barcode}</div>}
+                        <div style={{ fontWeight: 500 }}>{p.name}</div>
+                        {p.barcode && <div style={{ color: T.sub, fontSize: 11, marginTop: 2, fontFamily: 'ui-monospace, monospace' }}>{p.barcode}</div>}
                       </div>
-                      <div style={{
-                        color: T.primary, fontWeight: 800, fontSize: 16,
-                        background: `${T.primary}15`, padding: '4px 10px', borderRadius: 8,
-                      }}>
+                      <div style={{ color: T.text, fontWeight: 600, fontSize: 14, fontVariantNumeric: 'tabular-nums' }}>
                         {fmt(p.use_manual && p.price_manual != null ? p.price_manual : p.price_auto)}
                       </div>
                     </button>
@@ -337,55 +250,45 @@ export default function POSScreen({ user }: Props) {
           )}
         </div>
 
-        {/* Carrito */}
         <div style={{ flex: 1, overflowY: 'auto', background: T.bg }}>
           {cart.length === 0 ? (
-            <div style={{
-              display: 'flex', flexDirection: 'column', alignItems: 'center',
-              justifyContent: 'center', height: '100%', gap: 14, color: T.faint,
-            }}>
-              <ShoppingCart size={56} strokeWidth={1} />
-              <div style={{ fontSize: 15, color: T.sub }}>Escaneá un producto para empezar</div>
-              <div style={{ fontSize: 12, color: T.faint }}>O usá el botón "Buscar" para buscar por nombre</div>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 10 }}>
+              <ShoppingCart size={40} strokeWidth={1.25} color={T.faint} aria-hidden="true" />
+              <div style={{ fontSize: 13, color: T.sub }}>Escaneá un producto para empezar</div>
             </div>
           ) : (
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead style={{ background: T.surface }}>
-                <tr style={{ color: T.sub, fontSize: 11, fontWeight: 600, letterSpacing: '0.05em' }}>
-                  <th style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 600 }}>PRODUCTO</th>
-                  <th style={{ padding: '10px 8px', textAlign: 'center', fontWeight: 600 }}>CANT.</th>
-                  <th style={{ padding: '10px 8px', textAlign: 'right', fontWeight: 600 }}>PRECIO</th>
-                  <th style={{ padding: '10px 16px', textAlign: 'right', fontWeight: 600 }}>SUBTOTAL</th>
-                  <th style={{ width: 40 }} />
+              <thead>
+                <tr style={{ color: T.sub, fontSize: 11, fontWeight: 600, letterSpacing: '0.04em', borderBottom: `1px solid ${T.border}` }}>
+                  <th scope="col" style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 600 }}>PRODUCTO</th>
+                  <th scope="col" style={{ padding: '10px 8px', textAlign: 'center', fontWeight: 600 }}>CANT.</th>
+                  <th scope="col" style={{ padding: '10px 8px', textAlign: 'right', fontWeight: 600 }}>PRECIO</th>
+                  <th scope="col" style={{ padding: '10px 16px', textAlign: 'right', fontWeight: 600 }}>SUBTOTAL</th>
+                  <th scope="col" aria-label="Acciones" style={{ width: 40 }} />
                 </tr>
               </thead>
               <tbody>
                 {cart.map((item, i) => (
-                  <tr key={i} style={{ borderBottom: `1px solid ${T.border}`, background: i % 2 === 0 ? 'transparent' : `${T.surface}80` }}>
-                    <td style={{ padding: '13px 16px' }}>
-                      <div style={{ color: T.text, fontSize: 15, fontWeight: 600 }}>{item.product_name}</div>
-                      {item.barcode && <div style={{ color: T.faint, fontSize: 11, marginTop: 2 }}>{item.barcode}</div>}
+                  <tr key={i} style={{ borderBottom: `1px solid ${T.border}` }}>
+                    <td style={{ padding: '12px 16px' }}>
+                      <div style={{ color: T.text, fontSize: 14, fontWeight: 500 }}>{item.product_name}</div>
+                      {item.barcode && <div style={{ color: T.faint, fontSize: 11, marginTop: 2, fontFamily: 'ui-monospace, monospace' }}>{item.barcode}</div>}
                     </td>
-                    <td style={{ padding: '13px 8px', textAlign: 'center' }}>
-                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: T.card, borderRadius: 10, padding: '4px 6px', border: `1px solid ${T.border}` }}>
-                        <button onClick={() => updateQty(i, -1)} style={qtyBtn}><Minus size={13} /></button>
-                        <span style={{ color: T.text, fontWeight: 800, fontSize: 17, minWidth: 28, textAlign: 'center' }}>{item.quantity}</span>
-                        <button onClick={() => updateQty(i, +1)} style={qtyBtn}><Plus size={13} /></button>
+                    <td style={{ padding: '12px 8px', textAlign: 'center' }}>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: T.surface, borderRadius: 6, padding: 2, border: `1px solid ${T.border}` }}>
+                        <button onClick={() => updateQty(i, -1)} style={qtyBtn} aria-label="Reducir cantidad"><Minus size={12} /></button>
+                        <span style={{ color: T.text, fontWeight: 600, fontSize: 14, minWidth: 24, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{item.quantity}</span>
+                        <button onClick={() => updateQty(i, +1)} style={qtyBtn} aria-label="Aumentar cantidad"><Plus size={12} /></button>
                       </div>
                     </td>
-                    <td style={{ padding: '13px 8px', textAlign: 'right', color: T.sub, fontSize: 14 }}>
-                      {fmt(item.unit_price)}
-                    </td>
-                    <td style={{ padding: '13px 16px', textAlign: 'right', color: T.text, fontWeight: 700, fontSize: 15 }}>
-                      {fmt(item.quantity * item.unit_price)}
-                    </td>
-                    <td style={{ padding: '13px 8px', textAlign: 'center' }}>
-                      <button onClick={() => setCart(p => p.filter((_, idx) => idx !== i))}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: T.faint, padding: 4, borderRadius: 6, transition: 'color 0.15s' }}
+                    <td style={{ padding: '12px 8px', textAlign: 'right', color: T.sub, fontSize: 13, fontVariantNumeric: 'tabular-nums' }}>{fmt(item.unit_price)}</td>
+                    <td style={{ padding: '12px 16px', textAlign: 'right', color: T.text, fontWeight: 600, fontSize: 14, fontVariantNumeric: 'tabular-nums' }}>{fmt(item.quantity * item.unit_price)}</td>
+                    <td style={{ padding: '12px 8px', textAlign: 'center' }}>
+                      <button onClick={() => setCart(p => p.filter((_, idx) => idx !== i))} aria-label={`Quitar ${item.product_name}`}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: T.faint, padding: 4, borderRadius: 4 }}
                         onMouseEnter={e => (e.currentTarget.style.color = T.danger)}
-                        onMouseLeave={e => (e.currentTarget.style.color = T.faint)}
-                      >
-                        <Trash2 size={15} />
+                        onMouseLeave={e => (e.currentTarget.style.color = T.faint)}>
+                        <Trash2 size={14} />
                       </button>
                     </td>
                   </tr>
@@ -396,10 +299,8 @@ export default function POSScreen({ user }: Props) {
         </div>
       </div>
 
-      {/* Panel derecho — resumen + cobrar */}
-      <div style={{ width: 300, display: 'flex', flexDirection: 'column', background: T.surface, borderLeft: `1px solid ${T.border}` }}>
-
-        {/* Forma de pago */}
+      {/* Panel derecho */}
+      <div style={{ width: 300, minWidth: 280, flexShrink: 0, display: 'flex', flexDirection: 'column', background: T.surface, borderLeft: `1px solid ${T.border}` }}>
         <div style={{ padding: '16px 16px 0' }}>
           <div style={{ fontSize: 11, fontWeight: 600, color: T.sub, marginBottom: 8, letterSpacing: '0.06em' }}>FORMA DE PAGO</div>
           <div style={{ display: 'flex', gap: 8 }}>
@@ -410,17 +311,18 @@ export default function POSScreen({ user }: Props) {
                 background: payMethod === m ? (m === 'CASH' ? T.cashBg : T.transferBg) : 'transparent',
                 color: payMethod === m ? (m === 'CASH' ? T.cash : T.transfer) : T.sub,
                 cursor: 'pointer', transition: 'all 0.15s',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
               }}>
-                {m === 'CASH' ? '💵 Efectivo' : '📲 Transfer.'}
+                {m === 'CASH'
+                  ? <><Banknote size={14} aria-hidden="true" /> Efectivo</>
+                  : <><Smartphone size={14} aria-hidden="true" /> Transfer.</>}
               </button>
             ))}
           </div>
         </div>
 
-        {/* Spacer */}
         <div style={{ flex: 1 }} />
 
-        {/* Resumen */}
         <div style={{ padding: '0 16px' }}>
           <div style={{ borderTop: `1px solid ${T.border}`, paddingTop: 16, marginBottom: 16 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, color: T.sub, fontSize: 13 }}>
@@ -429,50 +331,28 @@ export default function POSScreen({ user }: Props) {
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
               <span style={{ fontSize: 13, color: T.sub, fontWeight: 600 }}>TOTAL</span>
-              <span style={{
-                fontSize: cart.length > 0 ? 44 : 36,
-                fontWeight: 900,
-                color: cart.length > 0 ? T.text : T.faint,
-                lineHeight: 1,
-                letterSpacing: '-1px',
-              }}>
+              <span style={{ fontSize: cart.length > 0 ? 44 : 36, fontWeight: 900, color: cart.length > 0 ? T.text : T.faint, lineHeight: 1, letterSpacing: '-1px' }}>
                 {fmt(total)}
               </span>
             </div>
           </div>
         </div>
 
-        {/* Botones */}
         <div style={{ padding: '0 16px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <button
-            onClick={() => setStep('checkout')}
-            disabled={cart.length === 0}
-            style={{
-              padding: '18px 0', borderRadius: T.r, border: 'none',
-              fontSize: 18, fontWeight: 800,
-              background: cart.length > 0
-                ? `linear-gradient(135deg, ${T.cash}, #16a34a)`
-                : T.border,
-              color: cart.length > 0 ? '#fff' : T.faint,
-              cursor: cart.length > 0 ? 'pointer' : 'default',
-              boxShadow: cart.length > 0 ? `0 4px 20px ${T.cash}50` : 'none',
-              transition: 'all 0.15s',
-              letterSpacing: '-0.3px',
-            }}
-          >
-            {cart.length > 0 ? `💰 Cobrar ${fmt(total)}` : 'Cobrar'}
+          <button onClick={() => setStep('checkout')} disabled={cart.length === 0} style={{
+            padding: '18px 0', borderRadius: T.r, border: 'none', fontSize: 17, fontWeight: 800,
+            background: cart.length > 0 ? T.gradCash : T.border,
+            color: cart.length > 0 ? '#fff' : T.faint,
+            cursor: cart.length > 0 ? 'pointer' : 'default',
+            boxShadow: cart.length > 0 ? T.shadowCash : 'none',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+          }}>
+            {cart.length > 0
+              ? <><Banknote size={18} aria-hidden="true" /> Cobrar {fmt(total)}</>
+              : 'Cobrar'}
           </button>
-
           {cart.length > 0 && (
-            <button
-              onClick={() => setCart([])}
-              style={{
-                padding: '10px 0', borderRadius: T.r,
-                border: `1.5px solid ${T.border}`,
-                background: 'transparent', color: T.sub,
-                fontSize: 13, fontWeight: 600, cursor: 'pointer',
-              }}
-            >
+            <button onClick={() => setCart([])} style={{ padding: '10px 0', borderRadius: T.r, border: `1.5px solid ${T.border}`, background: 'transparent', color: T.sub, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
               Limpiar carrito
             </button>
           )}
@@ -480,11 +360,4 @@ export default function POSScreen({ user }: Props) {
       </div>
     </div>
   )
-}
-
-const qtyBtn: React.CSSProperties = {
-  width: 28, height: 28, borderRadius: 8,
-  border: `1px solid ${T.border}`,
-  background: T.surface, color: T.text,
-  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
 }
