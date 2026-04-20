@@ -25,16 +25,20 @@ export async function middleware(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   const { pathname } = request.nextUrl
 
+  const superAdmins = (process.env.SUPER_ADMIN_EMAILS ?? process.env.SUPER_ADMIN_EMAIL ?? '')
+    .split(',').map(e => e.trim().toLowerCase()).filter(Boolean)
+  const isSuperAdmin = (email?: string | null) => !!email && superAdmins.includes(email.toLowerCase())
+
   if (!user && (pathname.startsWith('/dashboard') || pathname.startsWith('/admin'))) {
     return NextResponse.redirect(new URL('/', request.url))
   }
 
   if (user && pathname === '/') {
-    const dest = user.email === process.env.SUPER_ADMIN_EMAIL ? '/admin' : '/dashboard'
+    const dest = isSuperAdmin(user.email) ? '/admin' : '/dashboard'
     return NextResponse.redirect(new URL(dest, request.url))
   }
 
-  if (pathname.startsWith('/admin') && user?.email !== process.env.SUPER_ADMIN_EMAIL) {
+  if (pathname.startsWith('/admin') && !isSuperAdmin(user?.email)) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
