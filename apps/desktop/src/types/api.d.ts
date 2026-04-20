@@ -3,56 +3,108 @@ export {}
 declare global {
   interface Window {
     api: {
+      auth: {
+        login: (data: { name: string; password: string }) => Promise<IpcResponse<AuthLoginResult>>
+        current: () => Promise<IpcResponse<AuthCurrentResult | null>>
+        logout: () => Promise<IpcResponse<{ ok: true }>>
+        touch: () => Promise<IpcResponse<{ ok: boolean; session?: SessionInfo }>>
+      }
       store: {
-        get: () => Promise<Store>
-        update: (data: Partial<Store>) => Promise<{ ok: boolean }>
+        get: () => Promise<IpcResponse<Store>>
+        update: (data: Partial<Store>) => Promise<IpcResponse<{ id: string }>>
       }
       users: {
-        login: (data: { name: string; password: string }) => Promise<User | { error: string }>
-        list: () => Promise<User[]>
-        create: (data: { name: string; pin: string; role: string }) => Promise<User>
+        /** @deprecated usar auth.login. Se mantiene como alias compat. */
+        login: (data: { name: string; password: string }) => Promise<IpcResponse<User & { sessionId: string; must_change_pin: number }>>
+        list: () => Promise<IpcResponse<User[]>>
+        create: (data: { name: string; pin: string; role: User['role'] }) => Promise<IpcResponse<User>>
+        changePin: (data: { userId?: string; currentPin?: string; newPin: string }) => Promise<IpcResponse<{ id: string }>>
       }
       categories: {
-        list: () => Promise<Category[]>
-        create: (data: { name: string; color?: string }) => Promise<Category>
-        update: (data: Partial<Category>) => Promise<Category>
-        delete: (id: string) => Promise<{ ok: boolean }>
+        list: () => Promise<IpcResponse<Category[]>>
+        create: (data: { name: string; color?: string }) => Promise<IpcResponse<Category>>
+        update: (data: Partial<Category>) => Promise<IpcResponse<Category>>
+        delete: (id: string) => Promise<IpcResponse<{ id: string }>>
       }
       suppliers: {
-        list: () => Promise<Supplier[]>
-        create: (data: Partial<Supplier>) => Promise<Supplier>
-        update: (data: Partial<Supplier>) => Promise<Supplier>
-        delete: (id: string) => Promise<{ ok: boolean }>
+        list: () => Promise<IpcResponse<Supplier[]>>
+        create: (data: Partial<Supplier>) => Promise<IpcResponse<Supplier>>
+        update: (data: Partial<Supplier>) => Promise<IpcResponse<Supplier>>
+        delete: (id: string) => Promise<IpcResponse<{ id: string }>>
       }
       products: {
-        list: (filters?: ProductFilters) => Promise<Product[]>
-        getByBarcode: (barcode: string) => Promise<Product | null>
-        create: (data: Partial<Product> & { user_id?: string }) => Promise<Product>
-        update: (data: Partial<Product> & { user_id?: string }) => Promise<Product>
-        delete: (id: string) => Promise<{ ok: boolean }>
+        list: (filters?: ProductFilters) => Promise<IpcResponse<Product[]>>
+        getByBarcode: (barcode: string) => Promise<IpcResponse<Product | undefined>>
+        create: (data: Partial<Product> & { user_id?: string }) => Promise<IpcResponse<Product>>
+        update: (data: Partial<Product> & { user_id?: string }) => Promise<IpcResponse<Product>>
+        delete: (id: string) => Promise<IpcResponse<{ id: string }>>
       }
       sales: {
-        create: (data: SalePayload) => Promise<Sale>
-        list: (filters?: SaleFilters) => Promise<Sale[]>
-        getItems: (saleId: string) => Promise<SaleItem[]>
+        create: (data: SalePayload) => Promise<IpcResponse<Sale>>
+        list: (filters?: SaleFilters) => Promise<IpcResponse<Sale[]>>
+        getItems: (saleId: string) => Promise<IpcResponse<SaleItem[]>>
       }
       cashRegister: {
-        open: (data: { user_id: string; opening_amount: number }) => Promise<CashRegister | { error: string }>
-        getCurrent: () => Promise<CashRegister | null>
-        close: (data: { id: string; closing_amount: number; notes?: string; user_id: string }) => Promise<CashRegister>
-        addMovement: (data: Partial<CashMovement>) => Promise<CashMovement>
-        getMovements: (registerId: string) => Promise<CashMovement[]>
+        open: (data: { user_id: string; opening_amount: number }) => Promise<IpcResponse<CashRegister>>
+        getCurrent: () => Promise<IpcResponse<CashRegister | undefined>>
+        close: (data: { id: string; closing_amount: number; notes?: string; user_id: string }) => Promise<IpcResponse<CashRegister>>
+        addMovement: (data: Partial<CashMovement>) => Promise<IpcResponse<CashMovement>>
+        getMovements: (registerId: string) => Promise<IpcResponse<CashMovement[]>>
       }
       purchases: {
-        create: (data: PurchasePayload) => Promise<Purchase>
-        list: () => Promise<Purchase[]>
+        create: (data: PurchasePayload) => Promise<IpcResponse<Purchase>>
+        list: () => Promise<IpcResponse<Purchase[]>>
       }
       reports: {
-        salesSummary: (filters?: DateFilters) => Promise<SalesSummary>
-        salesByDay: (filters?: DateFilters) => Promise<SalesByDay[]>
+        salesSummary: (filters?: DateFilters) => Promise<IpcResponse<SalesSummary>>
+        salesByDay: (filters?: DateFilters) => Promise<IpcResponse<SalesByDay[]>>
+      }
+      app: {
+        getVersion: () => Promise<IpcResponse<AppInfo>>
+        checkUpdates: () => Promise<IpcResponse<UpdateCheck>>
+      }
+      sync: {
+        manual: () => Promise<IpcResponse<SyncResult>>
+        status: () => Promise<IpcResponse<SyncStatus>>
+      }
+      print: {
+        ticket: (data: { saleId: string }) => Promise<IpcResponse<{ ticketId: string }>>
+        reprint: (data: { saleId: string; originalTicketId?: string }) => Promise<IpcResponse<{ ticketId: string }>>
+      }
+      backup: {
+        create: (opts?: { askPath?: boolean }) => Promise<IpcResponse<{ path: string; bytes: number } | null>>
+      }
+      exporter: {
+        csv: (data: { table: 'sales' | 'products' | 'purchases' | 'audit'; filters?: DateFilters }) => Promise<IpcResponse<{ path: string; rows: number } | null>>
       }
     }
   }
+}
+
+// ── Respuesta uniforme de IPC ──
+// Track A debe chequear `.ok` antes de usar `.data`. En `!ok`, `.error` es el
+// mensaje ya traducido al usuario y `.code` es un identificador estable.
+export type IpcResponse<T> =
+  | { ok: true; data: T }
+  | { ok: false; error: string; code?: string }
+
+// ── Auth ──
+
+export interface SessionInfo {
+  sessionId: string
+  userId: string
+  name: string
+  role: User['role']
+}
+
+export interface AuthLoginResult {
+  user: User & { must_change_pin?: number }
+  session: SessionInfo
+}
+
+export interface AuthCurrentResult {
+  user: User & { must_change_pin?: number }
+  session: SessionInfo
 }
 
 // ── Entidades ──
@@ -74,6 +126,8 @@ export interface User {
   name: string
   role: 'CASHIER' | 'MANAGER' | 'OWNER'
   active: number
+  last_login_at?: string
+  must_change_pin?: number
 }
 
 export interface Category {
@@ -253,4 +307,37 @@ export interface SalesByDay {
   date: string
   total_sales: number
   total_amount: number
+}
+
+// ── App / Sync ──
+
+export interface AppInfo {
+  version: string
+  name: string
+  electron: string
+  node: string
+  platform: NodeJS.Platform
+}
+
+export interface UpdateCheck {
+  available: boolean
+  currentVersion: string
+  latestVersion?: string
+  downloadUrl?: string
+}
+
+export interface SyncResult {
+  processed?: number
+  failed?: number
+  total?: number
+  skipped?: string
+}
+
+export interface SyncStatus {
+  online: boolean
+  processing: boolean
+  pending: number
+  failed: number
+  lastSync: string | null
+  lastError: string | null
 }
