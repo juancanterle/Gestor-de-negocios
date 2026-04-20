@@ -1,5 +1,14 @@
 const { contextBridge, ipcRenderer } = require('electron')
 
+async function ipc(channel, data) {
+  try {
+    const result = await ipcRenderer.invoke(channel, data)
+    return { ok: true, data: result }
+  } catch (e) {
+    return { ok: false, error: (e && e.message) || 'Error desconocido' }
+  }
+}
+
 const api = {
   auth: {
     login:     (d)  => ipcRenderer.invoke('auth:login', d),

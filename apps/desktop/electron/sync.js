@@ -6,6 +6,17 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 let client = null
 let _db = null   // referencia a la instancia de better-sqlite3, inyectada desde database.js
 
+// Estado de sincronización
+const _state = {
+  processing: false,
+  lastSync: null,
+  lastError: null,
+}
+
+function getSyncState() {
+  return { ..._state }
+}
+
 // database.js llama a esto justo después de initDatabase()
 function setDb(dbInstance) {
   _db = dbInstance
@@ -29,7 +40,8 @@ function supabase() {
 // Fire-and-forget: nunca bloquea el proceso local
 async function syncSale(sale, items) {
   const storeId = getStoreId()
-  if (!storeId) return   // sin store_id configurado no sincroniza
+  if (!storeId) return
+  _state.processing = true
   try {
     await supabase().from('sales').upsert({
       id: sale.id,
@@ -54,14 +66,20 @@ async function syncSale(sale, items) {
         }))
       )
     }
+    _state.lastSync = new Date().toISOString()
+    _state.lastError = null
   } catch (e) {
+    _state.lastError = e.message
     console.warn('[sync] sale:', e.message)
+  } finally {
+    _state.processing = false
   }
 }
 
 async function syncProduct(product) {
   const storeId = getStoreId()
   if (!storeId) return
+  _state.processing = true
   try {
     await supabase().from('products').upsert({
       id: product.id,
@@ -79,14 +97,20 @@ async function syncProduct(product) {
       supplier_name: product.supplier_name || null,
       updated_at: product.updated_at,
     })
+    _state.lastSync = new Date().toISOString()
+    _state.lastError = null
   } catch (e) {
+    _state.lastError = e.message
     console.warn('[sync] product:', e.message)
+  } finally {
+    _state.processing = false
   }
 }
 
 async function syncCashRegister(register) {
   const storeId = getStoreId()
   if (!storeId) return
+  _state.processing = true
   try {
     await supabase().from('cash_registers').upsert({
       id: register.id,
@@ -100,14 +124,20 @@ async function syncCashRegister(register) {
       opened_at: register.opened_at,
       closed_at: register.closed_at || null,
     })
+    _state.lastSync = new Date().toISOString()
+    _state.lastError = null
   } catch (e) {
+    _state.lastError = e.message
     console.warn('[sync] cash_register:', e.message)
+  } finally {
+    _state.processing = false
   }
 }
 
 async function syncCashMovement(movement) {
   const storeId = getStoreId()
   if (!storeId) return
+  _state.processing = true
   try {
     await supabase().from('cash_movements').upsert({
       id: movement.id,
@@ -118,9 +148,14 @@ async function syncCashMovement(movement) {
       description: movement.description || null,
       created_at: movement.created_at,
     })
+    _state.lastSync = new Date().toISOString()
+    _state.lastError = null
   } catch (e) {
+    _state.lastError = e.message
     console.warn('[sync] cash_movement:', e.message)
+  } finally {
+    _state.processing = false
   }
 }
 
-module.exports = { setDb, syncSale, syncProduct, syncCashRegister, syncCashMovement, supabase, getStoreId }
+module.exports = { setDb, getSyncState, syncSale, syncProduct, syncCashRegister, syncCashMovement, supabase, getStoreId }

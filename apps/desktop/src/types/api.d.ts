@@ -1,5 +1,9 @@
 export {}
 
+export type IpcResponse<T> =
+  | { ok: true; data: T }
+  | { ok: false; error: string }
+
 declare global {
   interface Window {
     api: {

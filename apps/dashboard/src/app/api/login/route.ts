@@ -46,7 +46,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Email o contraseña incorrectos' }, { status: 401 })
   }
 
-  const isAdmin = data.user.email === process.env.SUPER_ADMIN_EMAIL
+  const superAdmins = (process.env.SUPER_ADMIN_EMAILS ?? process.env.SUPER_ADMIN_EMAIL ?? '')
+    .split(',').map(e => e.trim().toLowerCase()).filter(Boolean)
+  const isAdmin = superAdmins.includes((data.user.email ?? '').toLowerCase())
 
   if (!isAdmin) {
     const { data: storeUser } = await supabase
