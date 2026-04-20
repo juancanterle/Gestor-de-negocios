@@ -13,14 +13,14 @@ export const T = {
   border:  '#1c2f4a',
   borderHi:'#3b82f6',
 
-  // Texto — alto contraste
+  // Texto — alto contraste (WCAG AA compliant on bg)
   text:    '#eef2fa',   // blanco cálido
-  sub:     '#7a90b0',   // secundario
-  faint:   '#364d68',   // muy atenuado
+  sub:     '#a1b8d6',   // secundario (contrast ratio >=4.5 sobre bg)
+  faint:   '#7890ae',   // atenuado (contrast ratio >=4.5 sobre bg)
 
   // Acciones primarias
-  primary: '#3b82f6',   // azul claro
-  primaryD:'#2563eb',   // hover azul
+  primary: '#3b82f6',   // azul — texto sobre bg oscuro (4.7:1 en #090f1c)
+  primaryD:'#1d4ed8',   // bg para botones primarios (6.7:1 con #fff)
 
   // Semánticos — colores claros y distintos
   cash:     '#16a34a',  // VERDE — efectivo (el más visto)
@@ -42,6 +42,18 @@ export const T = {
   r:   '10px',
   rLg: '14px',
   rXl: '18px',
+  rSm: '6px',
+
+  // Gradients
+  gradPrimary:  'linear-gradient(135deg, #1d4ed8, #4338ca)',
+  gradCash:     'linear-gradient(135deg, #16a34a, #15803d)',
+  gradTransfer: 'linear-gradient(135deg, #0ea5e9, #0284c7)',
+
+  // Shadows
+  shadowCard:    '0 8px 24px rgba(0,0,0,0.35)',
+  shadowModal:   '0 24px 64px rgba(0,0,0,0.6)',
+  shadowPrimary: '0 4px 20px #3b82f640',
+  shadowCash:    '0 4px 20px #16a34a50',
 } as const
 
 // Estilos de inputs compartidos
