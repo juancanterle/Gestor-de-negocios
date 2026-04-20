@@ -1,4 +1,4 @@
-const { app, BrowserWindow } = require('electron')
+const { app, BrowserWindow, dialog } = require('electron')
 const path = require('path')
 const { initDatabase, closeDatabase } = require('./database.js')
 
@@ -31,7 +31,18 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
-  initDatabase()
+  try {
+    initDatabase()
+  } catch (e) {
+    console.error('[db] Error inicializando base de datos:', e)
+    dialog.showErrorBox(
+      'Error iniciando la aplicación',
+      `No se pudo abrir la base de datos:\n\n${e.message}\n\n` +
+      'Si el problema persiste, contactá al soporte. Los datos están respaldados.'
+    )
+    app.quit()
+    return
+  }
   createWindow()
 
   app.on('activate', () => {

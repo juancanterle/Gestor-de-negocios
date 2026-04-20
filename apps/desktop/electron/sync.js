@@ -123,4 +123,4 @@ async function syncCashMovement(movement) {
   }
 }
 
-module.exports = { setDb, syncSale, syncProduct, syncCashRegister, syncCashMovement }
+module.exports = { setDb, syncSale, syncProduct, syncCashRegister, syncCashMovement, supabase, getStoreId }
