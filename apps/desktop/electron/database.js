@@ -2,7 +2,7 @@ const Database = require('better-sqlite3')
 const { app, ipcMain } = require('electron')
 const path = require('path')
 const { randomUUID } = require('crypto')
-const { setDb, syncSale, syncProduct, syncCashRegister, syncCashMovement } = require('./sync')
+const { setDb, getSyncState, syncSale, syncProduct, syncCashRegister, syncCashMovement } = require('./sync')
 
 let db
 
@@ -575,7 +575,7 @@ function registerHandlers() {
   // ── CAJA ──
   ipcMain.handle('cashRegister:open', (_, data) => {
     const existing = db.prepare("SELECT id FROM cash_registers WHERE status='OPEN'").get()
-    if (existing) return { error: 'Ya hay una caja abierta' }
+    if (existing) throw new Error('Ya hay una caja abierta')
 
     const id = randomUUID()
     const now = new Date().toISOString()
@@ -763,7 +763,7 @@ function registerHandlers() {
   // ── USUARIOS ──
   ipcMain.handle('users:login', (_, { name, password }) => {
     const user = db.prepare("SELECT id, name, role FROM users WHERE name=? AND pin=? AND active=1").get(name, password)
-    if (!user) return { error: 'Usuario o contraseña incorrectos' }
+    if (!user) throw new Error('Usuario o contraseña incorrectos')
     return user
   })
 
@@ -778,6 +778,27 @@ function registerHandlers() {
       INSERT INTO users (id, name, pin, role, created_at) VALUES (?, ?, ?, ?, ?)
     `).run(id, data.name, data.pin, data.role, now)
     return db.prepare('SELECT id, name, role, active FROM users WHERE id=?').get(id)
+  })
+
+  // ── SINCRONIZACIÓN ──
+  ipcMain.handle('sync:status', () => {
+    const { net } = require('electron')
+    const pending = db.prepare("SELECT COUNT(*) as n FROM sync_queue WHERE status='PENDING'").get()?.n || 0
+    const failed  = db.prepare("SELECT COUNT(*) as n FROM sync_queue WHERE status='FAILED'").get()?.n || 0
+    const syncState = getSyncState()
+    return {
+      online:     net.isOnline(),
+      pending,
+      failed,
+      processing: syncState.processing,
+      lastSync:   syncState.lastSync,
+      lastError:  syncState.lastError,
+    }
+  })
+
+  ipcMain.handle('sync:manual', () => {
+    const pending = db.prepare("SELECT COUNT(*) as n FROM sync_queue WHERE status='PENDING'").get()?.n || 0
+    return { synced: 0, failed: pending }
   })
 }
 

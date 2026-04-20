@@ -1,55 +1,63 @@
 export {}
 
+export type IpcResponse<T> =
+  | { ok: true; data: T }
+  | { ok: false; error: string }
+
 declare global {
   interface Window {
     api: {
       store: {
-        get: () => Promise<Store>
-        update: (data: Partial<Store>) => Promise<{ ok: boolean }>
+        get: () => Promise<IpcResponse<Store>>
+        update: (data: Partial<Store>) => Promise<IpcResponse<void>>
       }
       users: {
-        login: (data: { name: string; password: string }) => Promise<User | { error: string }>
-        list: () => Promise<User[]>
-        create: (data: { name: string; pin: string; role: string }) => Promise<User>
+        login: (data: { name: string; password: string }) => Promise<IpcResponse<User>>
+        list: () => Promise<IpcResponse<User[]>>
+        create: (data: { name: string; pin: string; role: string }) => Promise<IpcResponse<User>>
       }
       categories: {
-        list: () => Promise<Category[]>
-        create: (data: { name: string; color?: string }) => Promise<Category>
-        update: (data: Partial<Category>) => Promise<Category>
-        delete: (id: string) => Promise<{ ok: boolean }>
+        list: () => Promise<IpcResponse<Category[]>>
+        create: (data: { name: string; color?: string }) => Promise<IpcResponse<Category>>
+        update: (data: Partial<Category>) => Promise<IpcResponse<Category>>
+        delete: (id: string) => Promise<IpcResponse<void>>
       }
       suppliers: {
-        list: () => Promise<Supplier[]>
-        create: (data: Partial<Supplier>) => Promise<Supplier>
-        update: (data: Partial<Supplier>) => Promise<Supplier>
-        delete: (id: string) => Promise<{ ok: boolean }>
+        list: () => Promise<IpcResponse<Supplier[]>>
+        create: (data: Partial<Supplier>) => Promise<IpcResponse<Supplier>>
+        update: (data: Partial<Supplier>) => Promise<IpcResponse<Supplier>>
+        delete: (id: string) => Promise<IpcResponse<void>>
       }
       products: {
-        list: (filters?: ProductFilters) => Promise<Product[]>
-        getByBarcode: (barcode: string) => Promise<Product | null>
-        create: (data: Partial<Product> & { user_id?: string }) => Promise<Product>
-        update: (data: Partial<Product> & { user_id?: string }) => Promise<Product>
-        delete: (id: string) => Promise<{ ok: boolean }>
+        list: (filters?: ProductFilters) => Promise<IpcResponse<Product[]>>
+        getByBarcode: (barcode: string) => Promise<IpcResponse<Product | null>>
+        create: (data: Partial<Product> & { user_id?: string }) => Promise<IpcResponse<Product>>
+        update: (data: Partial<Product> & { user_id?: string }) => Promise<IpcResponse<Product>>
+        delete: (id: string) => Promise<IpcResponse<void>>
       }
       sales: {
-        create: (data: SalePayload) => Promise<Sale>
-        list: (filters?: SaleFilters) => Promise<Sale[]>
-        getItems: (saleId: string) => Promise<SaleItem[]>
+        create: (data: SalePayload) => Promise<IpcResponse<Sale>>
+        list: (filters?: SaleFilters) => Promise<IpcResponse<Sale[]>>
+        getItems: (saleId: string) => Promise<IpcResponse<SaleItem[]>>
       }
       cashRegister: {
-        open: (data: { user_id: string; opening_amount: number }) => Promise<CashRegister | { error: string }>
-        getCurrent: () => Promise<CashRegister | null>
-        close: (data: { id: string; closing_amount: number; notes?: string; user_id: string }) => Promise<CashRegister>
-        addMovement: (data: Partial<CashMovement>) => Promise<CashMovement>
-        getMovements: (registerId: string) => Promise<CashMovement[]>
+        open: (data: { user_id: string; opening_amount: number }) => Promise<IpcResponse<CashRegister>>
+        getCurrent: () => Promise<IpcResponse<CashRegister | null>>
+        close: (data: { id: string; closing_amount: number; notes?: string; user_id: string }) => Promise<IpcResponse<CashRegister>>
+        addMovement: (data: Partial<CashMovement>) => Promise<IpcResponse<CashMovement>>
+        getMovements: (registerId: string) => Promise<IpcResponse<CashMovement[]>>
       }
       purchases: {
-        create: (data: PurchasePayload) => Promise<Purchase>
-        list: () => Promise<Purchase[]>
+        create: (data: PurchasePayload) => Promise<IpcResponse<Purchase>>
+        list: () => Promise<IpcResponse<Purchase[]>>
       }
       reports: {
-        salesSummary: (filters?: DateFilters) => Promise<SalesSummary>
-        salesByDay: (filters?: DateFilters) => Promise<SalesByDay[]>
+        salesSummary: (filters?: DateFilters) => Promise<IpcResponse<SalesSummary>>
+        salesByDay: (filters?: DateFilters) => Promise<IpcResponse<SalesByDay[]>>
+      }
+      sync: {
+        status: () => Promise<IpcResponse<SyncStatus>>
+        manual: () => Promise<IpcResponse<SyncResult>>
       }
     }
   }
@@ -253,4 +261,18 @@ export interface SalesByDay {
   date: string
   total_sales: number
   total_amount: number
+}
+
+export interface SyncStatus {
+  online: boolean
+  pending: number
+  failed: number
+  processing: boolean
+  lastSync: string | null
+  lastError: string | null
+}
+
+export interface SyncResult {
+  synced: number
+  failed: number
 }
